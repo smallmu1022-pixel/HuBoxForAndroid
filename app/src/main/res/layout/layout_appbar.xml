@@ -6,12 +6,12 @@
     android:layout_height="wrap_content"
     android:background="?attr/colorSurface"
     app:elevation="0dp"
-    app:liftOnScroll="true">
+    app:liftOnScroll="false">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="48dp"
         android:background="@android:color/transparent"
         android:theme="?actionBarTheme"
         android:touchscreenBlocksFocus="false"

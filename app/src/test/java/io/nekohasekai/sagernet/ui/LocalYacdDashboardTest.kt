@@ -69,7 +69,7 @@ class LocalYacdDashboardTest {
 
     @Test fun bootstrapEscapesSecretAndBundledRouterContractMatches() {
         val secret = "\"</script><script>throw 1</script>\\\n\u2028"
-        val html = LocalYacdDashboard.bootstrap("(__OWNBOX_YACD_CONFIG__)", secret, "reload")
+        val html = LocalYacdDashboard.bootstrap("(__HUBOX_YACD_CONFIG__)", secret, "reload")
         assertFalse(html.contains("<script>throw"))
         assertTrue(html.contains("\\u003c"))
         assertTrue(html.contains("\\u2028"))

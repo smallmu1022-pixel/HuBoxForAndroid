@@ -246,8 +246,8 @@ class UiScaleSettingsActivity : ThemedActivity() {
 
         regionBox.addView(
             buildScaleSlider(
-                title = "顶栏品牌名 (OwnBox / 标题) 大小",
-                subtitle = "左上角 OwnBox 品牌名及二级页面标题文字大小",
+                title = "顶栏品牌名 (HuBox / 标题) 大小",
+                subtitle = "左上角 HuBox 品牌名及二级页面标题文字大小",
                 minPct = 70,
                 maxPct = 130,
                 step = 5,
@@ -440,7 +440,7 @@ class UiScaleSettingsActivity : ThemedActivity() {
         topBarRow.addView(navIcon)
 
         previewToolbarTitle = TextView(this).apply {
-            text = "OwnBox"
+            text = "HuBox"
             setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD))
             setTextColor(textPrimary)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)

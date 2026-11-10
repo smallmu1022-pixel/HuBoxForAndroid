@@ -396,7 +396,7 @@ func TestLocalHTTP2ServerRoundTrip(t *testing.T) {
 	// Create an HTTP/2 test server
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify custom header
-		if r.Header.Get("X-Test-Client") != "OwnBox" {
+		if r.Header.Get("X-Test-Client") != "HuBox" {
 			http.Error(w, "missing header", http.StatusBadRequest)
 			return
 		}
@@ -445,7 +445,7 @@ func TestLocalHTTP2ServerRoundTrip(t *testing.T) {
 	// 1. Test POST /upload with X-Padding and Session
 	opts := &V2RayXHTTPBaseOptions{
 		Headers: map[string]string{
-			"X-Test-Client": "OwnBox",
+			"X-Test-Client": "HuBox",
 		},
 		XPaddingBytes:     Xbadoption.Range{From: 16, To: 16},
 		XPaddingObfsMode:  true,
@@ -480,7 +480,7 @@ func TestLocalHTTP2ServerRoundTrip(t *testing.T) {
 
 	// 2. Test GET /download stream
 	reqDown, _ := http.NewRequest("GET", server.URL+"/download", nil)
-	reqDown.Header.Set("X-Test-Client", "OwnBox")
+	reqDown.Header.Set("X-Test-Client", "HuBox")
 	opts.ApplyPadding(reqDown)
 
 	respDown, err := h2Client.Do(reqDown)

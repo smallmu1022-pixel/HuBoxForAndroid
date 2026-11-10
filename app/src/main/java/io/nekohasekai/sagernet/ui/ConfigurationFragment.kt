@@ -853,183 +853,6 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
     }
 
-    private var topBarCapsulesDrawable: DualFloatingCapsulesDrawable? = null
-    private var topBarPreDrawListener: android.view.ViewTreeObserver.OnPreDrawListener? = null
-    private var topBarPreDrawTarget: View? = null
-
-    private fun setupTopBarFloatingCapsules(
-        fillColor: Int,
-        strokeColor: Int,
-        shadowBaseColor: Int,
-        isDark: Boolean,
-    ) {
-        val rootView = view ?: return
-        val toolbarContainer = rootView.findViewById<View>(R.id.toolbar_container) ?: return
-        val capsulesBgView = rootView.findViewById<View>(R.id.toolbar_capsules_bg) ?: return
-        val density = resources.displayMetrics.density
-
-        val drawable = topBarCapsulesDrawable?.apply {
-            this.fillColor = fillColor
-            this.strokeColor = strokeColor
-            this.strokeWidthPx = 0.9f * density
-            this.shadowBaseColor = shadowBaseColor
-            this.isDark = isDark
-            invalidateSelf()
-        } ?: DualFloatingCapsulesDrawable(
-            fillColor = fillColor,
-            strokeColor = strokeColor,
-            strokeWidthPx = 0.9f * density,
-            isDark = isDark,
-            density = density,
-            shadowBaseColor = shadowBaseColor,
-        ).also { topBarCapsulesDrawable = it }
-
-        if (capsulesBgView.background !== drawable) {
-            capsulesBgView.background = drawable
-        }
-
-        if (topBarPreDrawTarget !== toolbarContainer || topBarPreDrawListener == null) {
-            topBarPreDrawTarget?.viewTreeObserver?.let { vto ->
-                if (vto.isAlive && topBarPreDrawListener != null) {
-                    vto.removeOnPreDrawListener(topBarPreDrawListener)
-                }
-            }
-            val listener = android.view.ViewTreeObserver.OnPreDrawListener {
-                updateTopBarCapsulesBounds()
-                true
-            }
-            topBarPreDrawListener = listener
-            topBarPreDrawTarget = toolbarContainer
-            toolbarContainer.viewTreeObserver.addOnPreDrawListener(listener)
-        }
-        updateTopBarCapsulesBounds()
-    }
-
-    private fun updateTopBarCapsulesBounds() {
-        val rootView = view ?: return
-        val toolbarContainer = rootView.findViewById<View>(R.id.toolbar_container) ?: return
-        val drawable = topBarCapsulesDrawable ?: return
-        if (!isToolbarInitialized) return
-
-        val cw = toolbarContainer.width
-        val ch = toolbarContainer.height
-        if (cw <= 0 || ch <= 0) return
-
-        val density = resources.displayMetrics.density
-        val iconFactor = UiScaleManager.toolbarIconFactor()
-        val tabFactor = UiScaleManager.tabBarFactor()
-        val effectiveFactor = maxOf(tabFactor, iconFactor)
-
-        val capsuleH = (38f * density * effectiveFactor).coerceIn(
-            26f * density,
-            (ch - 6f * density).coerceAtLeast(26f * density)
-        )
-        val cy = ch * 0.5f
-        val capTop = cy - capsuleH * 0.5f
-        val capBottom = cy + capsuleH * 0.5f
-        val capRadius = capsuleH * 0.5f
-
-        val cardMargin = 8f * density
-
-        var rightL = 0f
-        var rightR = 0f
-        var menuView: ActionMenuView? = null
-        var navBtn: View? = null
-        for (i in 0 until toolbar.childCount) {
-            val child = toolbar.getChildAt(i)
-            if (child is ActionMenuView && child.visibility == View.VISIBLE) {
-                menuView = child
-            } else if (child is android.widget.ImageButton && child.visibility == View.VISIBLE) {
-                navBtn = child
-            }
-        }
-
-        // Scheme 1: Left independent circular floating button around navigation icon [|],
-        // perfectly centered in a circle of width capsuleH, anchored at cardMargin.
-        val leftL = cardMargin
-        var leftR = if (navBtn != null && navBtn.width > 0) {
-            leftL + capsuleH
-        } else {
-            0f
-        }
-
-        // Accurately center the navBtn icon at (leftL + capsuleH * 0.5, cy)
-        navBtn?.let { btn ->
-            val targetCenterX = leftL + capsuleH * 0.5f
-            val currentCenterX = toolbar.left + btn.left + btn.width * 0.5f
-            val dx = targetCenterX - currentCenterX
-            if (kotlin.math.abs(btn.translationX - dx) > 0.4f) {
-                btn.translationX = dx
-            }
-            val targetCenterY = cy
-            val currentCenterY = toolbar.top + btn.top + btn.height * 0.5f
-            val dy = targetCenterY - currentCenterY
-            if (kotlin.math.abs(btn.translationY - dy) > 0.4f) {
-                btn.translationY = dy
-            }
-        }
-
-        if (menuView != null && menuView.width > 0) {
-            var minChildL = Int.MAX_VALUE
-            var maxChildR = Int.MIN_VALUE
-            for (j in 0 until menuView.childCount) {
-                val item = menuView.getChildAt(j)
-                if (item.visibility == View.VISIBLE && item.width > 0) {
-                    if (item.left < minChildL) minChildL = item.left
-                    if (item.right > maxChildR) maxChildR = item.right
-                }
-            }
-            if (minChildL < maxChildR) {
-                val baseOffset = (toolbar.left + menuView.left).toFloat()
-                val rawL = baseOffset + minChildL
-                val rawR = baseOffset + maxChildR
-                val padH = 6f * density
-                rightR = (rawR + padH).coerceAtMost(cw - cardMargin)
-                rightL = (rawL - padH).coerceAtLeast(leftR + 8f * density)
-                if (rightR - rightL < capsuleH) {
-                    val mid = (rightL + rightR) * 0.5f
-                    rightL = mid - capsuleH * 0.5f
-                    rightR = mid + capsuleH * 0.5f
-                }
-            }
-        }
-
-        if (leftR > leftL && rightR > rightL) {
-            leftR = leftR.coerceAtMost(rightL - 8f * density)
-        }
-
-        // Dynamic Title Positioning & Anti-Collision
-        val titleView = rootView.findViewById<TextView>(R.id.toolbar_title_view)
-        if (titleView != null && leftR > 0f) {
-            val titleStart = (leftR + 8f * density).toInt()
-            (titleView.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
-                if (lp.leftMargin != titleStart) {
-                    lp.leftMargin = titleStart
-                    titleView.layoutParams = lp
-                }
-            }
-            val titleBoundR = if (rightL > leftR + 16f * density) rightL else cw - cardMargin
-            val maxTitleW = (titleBoundR - titleStart - 8f * density).toInt().coerceAtLeast((30f * density).toInt())
-            if (titleView.maxWidth != maxTitleW) {
-                titleView.maxWidth = maxTitleW
-            }
-            titleView.ellipsize = android.text.TextUtils.TruncateAt.END
-            titleView.isSingleLine = true
-        }
-
-        drawable.updateCapsules(
-            leftL = if (leftR > leftL) leftL else 0f,
-            leftT = if (leftR > leftL) capTop else 0f,
-            leftR = if (leftR > leftL) leftR else 0f,
-            leftB = if (leftR > leftL) capBottom else 0f,
-            rightL = if (rightR > rightL) rightL else 0f,
-            rightT = if (rightR > rightL) capTop else 0f,
-            rightR = if (rightR > rightL) rightR else 0f,
-            rightB = if (rightR > rightL) capBottom else 0f,
-            radius = capRadius,
-        )
-    }
-
     private fun resolveTopBarIconTint(ctx: Context): Int {
         val isBlack = Theme.isBlackTheme(ctx)
         val isNight = Theme.usingNightMode(ctx)
@@ -1061,7 +884,7 @@ class ConfigurationFragment @JvmOverloads constructor(
         sv?.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)?.setColorFilter(iconColor)
     }
 
-    private fun styleCapsuleTabLayout() {
+    private fun styleGroupTabLayout() {
         if (!::tabLayout.isInitialized) return
         val ctx = context ?: return
         val isBlack = Theme.isBlackTheme(ctx)
@@ -1070,75 +893,37 @@ class ConfigurationFragment @JvmOverloads constructor(
         val isLightGray = Theme.isLightGrayTheme(ctx)
         val themeColor = Theme.getPrimaryColor(ctx)
 
-        // 1. Style Outer Big Capsule Track (groupTabContainer) & Top Bar Floating Capsules
-        val tabFactor = UiScaleManager.tabBarFactor()
-        val scaledCapsuleH = (dp2px(38) * tabFactor).toFloat().coerceIn(dp2px(26).toFloat(), dp2px(54).toFloat())
-        val containerRadius = scaledCapsuleH * 0.5f
+        // 1. Static flat group tab container: 16dp corners, 1dp outline, no shadow.
         val containerBgColor: Int
         val containerStrokeColor: Int
-        val shadowBaseColor: Int
         when {
             isBlack -> {
                 containerBgColor = Color.parseColor("#141417")
                 containerStrokeColor = Color.parseColor("#27272A")
-                shadowBaseColor = Color.BLACK
             }
             isWhite -> {
                 containerBgColor = Color.WHITE
                 containerStrokeColor = Color.parseColor("#E4E8F0")
-                shadowBaseColor = Color.BLACK
             }
             isLightGray -> {
                 containerBgColor = Color.WHITE
                 containerStrokeColor = Color.parseColor("#E2E8F0")
-                shadowBaseColor = Color.BLACK
             }
             isNight -> {
                 containerBgColor = ColorUtils.blendARGB(Color.parseColor("#18181B"), themeColor, 0.16f)
                 containerStrokeColor = ColorUtils.blendARGB(Color.parseColor("#27272A"), themeColor, 0.38f)
-                shadowBaseColor = Color.BLACK
             }
             else -> {
                 containerBgColor = ColorUtils.blendARGB(Color.WHITE, themeColor, 0.09f)
                 containerStrokeColor = ColorUtils.blendARGB(Color.WHITE, themeColor, 0.28f)
-                shadowBaseColor = ColorUtils.blendARGB(Color.BLACK, themeColor, 0.35f)
             }
         }
-        val density = resources.displayMetrics.density
-        val padH = dp2px(8)
-        val padV = dp2px(5)
-        groupTabContainer?.setPadding(padH, padV, padH, padV)
-        groupTabContainer?.clipToOutline = false
-        (groupTabContainer as? ViewGroup)?.apply {
-            clipChildren = false
-            clipToPadding = false
+        groupTabContainer?.background = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(16).toFloat()
+            setColor(containerBgColor)
+            setStroke(dp2px(1), containerStrokeColor)
         }
-        groupTabContainer?.background = SingleFloatingCapsuleDrawable(
-            fillColor = containerBgColor,
-            strokeColor = containerStrokeColor,
-            strokeWidthPx = 0.9f * density,
-            cornerRadiusPx = containerRadius,
-            insetLeft = padH,
-            insetTop = padV,
-            insetRight = padH,
-            insetBottom = padV,
-            isDark = isBlack || isNight,
-            density = density,
-            shadowBaseColor = shadowBaseColor,
-        )
-        tabLayout.outlineProvider = object : android.view.ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: android.graphics.Outline) {
-                val r = (view.height * 0.5f).coerceAtLeast(containerRadius)
-                outline.setRoundRect(0, 0, view.width, view.height, r)
-            }
-        }
-        tabLayout.clipToOutline = true
-        setupTopBarFloatingCapsules(
-            fillColor = containerBgColor,
-            strokeColor = containerStrokeColor,
-            shadowBaseColor = shadowBaseColor,
-            isDark = isBlack || isNight,
-        )
         applyTopBarIconTint(resolveTopBarIconTint(ctx))
 
         // 2. Style Inner Active Sliding Pill & Text colors
@@ -1420,7 +1205,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                 tv?.setTextColor(textColorPrimary)
             }
         }
-        styleCapsuleTabLayout()
+        styleGroupTabLayout()
 
         val searchItem = toolbar.menu.findItem(R.id.action_search)
         val searchView = (searchItem?.actionView as? SearchView) ?: toolbar.findViewById<SearchView>(R.id.action_search)
@@ -1576,7 +1361,7 @@ class ConfigurationFragment @JvmOverloads constructor(
         })
         tabLayout.post {
             applyTabMargins()
-            styleCapsuleTabLayout()
+            styleGroupTabLayout()
         }
 
         toolbar.setOnClickListener {
@@ -1677,18 +1462,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 refreshProfileState()
             }
         }
-    }
-
-    override fun onDestroyView() {
-        topBarPreDrawTarget?.viewTreeObserver?.let { vto ->
-            if (vto.isAlive && topBarPreDrawListener != null) {
-                vto.removeOnPreDrawListener(topBarPreDrawListener)
-            }
-        }
-        topBarPreDrawListener = null
-        topBarPreDrawTarget = null
-        topBarCapsulesDrawable = null
-        super.onDestroyView()
     }
 
     override fun onDestroy() {
@@ -3334,7 +3107,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                                 if (!hideTab) {
                                     tabLayout.post {
                                         applyTabMargins()
-                                        styleCapsuleTabLayout()
+                                        styleGroupTabLayout()
                                     }
                                 }
                                 if (!select) {
@@ -3382,7 +3155,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     groupTabContainer?.visibility = View.VISIBLE
                     tabLayout.visibility = View.VISIBLE
                     applyTabMargins()
-                    styleCapsuleTabLayout()
+                    styleGroupTabLayout()
                 }
 
                 notifyItemInserted(groupList.size - 1)
@@ -5014,7 +4787,14 @@ class ConfigurationFragment @JvmOverloads constructor(
             private fun applySelected(selected: Boolean) {
                 val ctx = card.context
                 val surface = ctx.getColorAttr(R.attr.colorSurface)
-                card.setCardBackgroundColor(surface)
+                // HuBox minimalist line style: selected card is solid white (light) / black (dark)
+                card.setCardBackgroundColor(
+                    if (selected) {
+                        if (Theme.usingNightMode(ctx)) Color.BLACK else Color.WHITE
+                    } else {
+                        surface
+                    }
+                )
                 if (DataStore.profileCardStyle == 1) {
                     val primary = ctx.getColorAttr(R.attr.colorPrimary)
                     selectedIndicator.isVisible = false

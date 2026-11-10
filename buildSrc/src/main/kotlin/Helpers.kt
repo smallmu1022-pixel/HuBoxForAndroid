@@ -198,10 +198,10 @@ fun Project.setupApp() {
                 outputFileName = if (isPreview) {
                     outputFileName.replace(
                         project.name,
-                        "OwnBox-" + requireMetadata().getProperty("PRE_VERSION_NAME")
+                        "HuBox-" + requireMetadata().getProperty("PRE_VERSION_NAME")
                     ).replace("-preview", "")
                 } else {
-                    outputFileName.replace(project.name, "OwnBox-$versionName")
+                    outputFileName.replace(project.name, "HuBox-$versionName")
                         .replace("-release", "")
                         .replace("-oss", "")
                 }

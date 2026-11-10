@@ -280,8 +280,8 @@ object Action {
     const val RESTART = "io.nekohasekai.sagernet.RESTART"
 
     // const val SWITCH_WAKE_LOCK = "io.nekohasekai.sagernet.SWITCH_WAKELOCK"
-    const val RESET_UPSTREAM_CONNECTIONS = "com.ownbox.app.RESET_UPSTREAM_CONNECTIONS"
-    const val SWITCH_PERFORMANCE_MODE = "com.ownbox.app.SWITCH_PERFORMANCE_MODE"
+    const val RESET_UPSTREAM_CONNECTIONS = "com.HuBox.app.RESET_UPSTREAM_CONNECTIONS"
+    const val SWITCH_PERFORMANCE_MODE = "com.HuBox.app.SWITCH_PERFORMANCE_MODE"
     const val SWITCH_NEXT = "io.nekohasekai.sagernet.SWITCH_NEXT"
     const val SWITCH_PREVIOUS = "io.nekohasekai.sagernet.SWITCH_PREVIOUS"
     const val SWITCH_PROFILE = "io.nekohasekai.sagernet.SWITCH_PROFILE"

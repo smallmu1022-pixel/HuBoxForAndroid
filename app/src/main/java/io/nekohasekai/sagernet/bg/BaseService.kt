@@ -157,7 +157,7 @@ class BaseService {
             state = s
             DataStore.serviceState = s
             binder.stateChanged(s, msg)
-            runCatching { io.nekohasekai.sagernet.widget.OwnBoxWidgetProvider.updateWidgets(SagerNet.application) }
+            runCatching { io.nekohasekai.sagernet.widget.HuBoxWidgetProvider.updateWidgets(SagerNet.application) }
             if (s == State.Stopping || s == State.Stopped || s == State.Idle) {
                 notification?.listenPostSpeed = false
                 if (s == State.Stopped || s == State.Idle) {
@@ -267,7 +267,7 @@ class BaseService {
                 if (now - lastWidgetSpeedUpdate > 3500) {
                     lastWidgetSpeedUpdate = now
                     runCatching {
-                        io.nekohasekai.sagernet.widget.OwnBoxWidgetHelper.updateAllWidgets(SagerNet.application, speed)
+                        io.nekohasekai.sagernet.widget.HuBoxWidgetHelper.updateAllWidgets(SagerNet.application, speed)
                     }
                 }
             }

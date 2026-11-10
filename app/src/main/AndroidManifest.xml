@@ -546,7 +546,7 @@
         </receiver>
 
         <receiver
-            android:name="io.nekohasekai.sagernet.widget.OwnBoxWidgetProvider"
+            android:name="io.nekohasekai.sagernet.widget.HuBoxWidgetProvider"
             android:exported="true"
             android:label="@string/widget_name">
             <intent-filter>
@@ -554,11 +554,11 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/ownbox_widget_info" />
+                android:resource="@xml/hubox_widget_info" />
         </receiver>
 
         <receiver
-            android:name="io.nekohasekai.sagernet.widget.OwnBoxWidget1x1"
+            android:name="io.nekohasekai.sagernet.widget.HuBoxWidget1x1"
             android:exported="true"
             android:label="@string/widget_1x1_name">
             <intent-filter>
@@ -566,11 +566,11 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/ownbox_widget_1x1_info" />
+                android:resource="@xml/hubox_widget_1x1_info" />
         </receiver>
 
         <receiver
-            android:name="io.nekohasekai.sagernet.widget.OwnBoxWidget2x2"
+            android:name="io.nekohasekai.sagernet.widget.HuBoxWidget2x2"
             android:exported="true"
             android:label="@string/widget_2x2_name">
             <intent-filter>
@@ -578,11 +578,11 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/ownbox_widget_2x2_info" />
+                android:resource="@xml/hubox_widget_2x2_info" />
         </receiver>
 
         <receiver
-            android:name="io.nekohasekai.sagernet.widget.OwnBoxWidget4x1"
+            android:name="io.nekohasekai.sagernet.widget.HuBoxWidget4x1"
             android:exported="true"
             android:label="@string/widget_4x1_name">
             <intent-filter>
@@ -590,11 +590,11 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/ownbox_widget_4x1_info" />
+                android:resource="@xml/hubox_widget_4x1_info" />
         </receiver>
 
         <receiver
-            android:name="io.nekohasekai.sagernet.widget.OwnBoxWidget4x2"
+            android:name="io.nekohasekai.sagernet.widget.HuBoxWidget4x2"
             android:exported="true"
             android:label="@string/widget_4x2_name">
             <intent-filter>
@@ -602,7 +602,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/ownbox_widget_4x2_info" />
+                android:resource="@xml/hubox_widget_4x2_info" />
         </receiver>
 
         <service
@@ -624,7 +624,7 @@
             android:exported="false"
             android:launchMode="singleInstance"
             android:taskAffinity=""
-            android:theme="@style/Theme.OwnBox.Dialog" />
+            android:theme="@style/Theme.HuBox.Dialog" />
 
 
         <activity

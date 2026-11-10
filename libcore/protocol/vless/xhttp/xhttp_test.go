@@ -63,14 +63,14 @@ func TestDecideHTTPVersion(t *testing.T) {
 func TestGetRequestHeader(t *testing.T) {
 	opts := &V2RayXHTTPBaseOptions{
 		Headers: map[string]string{
-			"Custom-Header": "OwnBoxValue",
+			"Custom-Header": "HuBoxValue",
 		},
 		XPaddingBytes: Xbadoption.Range{From: 10, To: 10},
 	}
 
 	h1 := opts.GetRequestHeader("https://example.com/xhttp")
-	if h1.Get("Custom-Header") != "OwnBoxValue" {
-		t.Fatalf("expected Custom-Header to be OwnBoxValue")
+	if h1.Get("Custom-Header") != "HuBoxValue" {
+		t.Fatalf("expected Custom-Header to be HuBoxValue")
 	}
 	if len(h1.Get("X-Padding")) != 10 {
 		t.Fatalf("expected 10 X padding bytes, got %d", len(h1.Get("X-Padding")))

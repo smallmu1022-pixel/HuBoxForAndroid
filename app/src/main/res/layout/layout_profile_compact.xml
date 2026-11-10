@@ -32,7 +32,7 @@
                 android:ellipsize="end"
                 android:paddingStart="12dp"
                 android:paddingEnd="6dp"
-                android:paddingVertical="6dp"
+                android:paddingVertical="2dp"
                 android:singleLine="true"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="?android:attr/textColorPrimary"

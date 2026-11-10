@@ -113,7 +113,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                                 .subText(SagerNet.appVersionNameForDisplay)
                                 .setOnClickAction {
                                     requireContext().launchCustomTab(
-                                        "https://github.com/Own716/OwnBoxForAndroid/releases"
+                                        "https://github.com/smallmu1022-pixel/HuBoxForAndroid/releases"
                                     )
                                 }
                                 .build())
@@ -202,17 +202,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                                 .text(R.string.github)
                                 .setOnClickAction {
                                     requireContext().launchCustomTab(
-                                        "https://github.com/Own716/OwnBoxForAndroid"
-                                    )
-                                }
-                                .build())
-                        .addItem(
-                            MaterialAboutActionItem.Builder()
-                                .icon(R.drawable.ic_qu_shadowsocks_foreground)
-                                .text(R.string.telegram)
-                                .setOnClickAction {
-                                    requireContext().launchCustomTab(
-                                        "https://t.me/OwnBoxs"
+                                        "https://github.com/smallmu1022-pixel/HuBoxForAndroid"
                                     )
                                 }
                                 .build())
@@ -296,8 +286,8 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                         if (targetIsPreview) {
                             // 检查预览版更新：抓取 releases 列表，精准匹配首个 prerelease
                             val response = client.newRequest().apply {
-                                setURL("https://api.github.com/repos/Own716/OwnBoxForAndroid/releases")
-                                setUserAgent("OwnBox/${BuildConfig.VERSION_NAME}")
+                                setURL("https://api.github.com/repos/smallmu1022-pixel/HuBoxForAndroid/releases")
+                                setUserAgent("HuBox/${BuildConfig.VERSION_NAME}")
                                 setHeader("Accept", "application/vnd.github.v3+json")
                             }.execute()
                             val responseStr = Util.getStringBox(response.contentString)
@@ -322,8 +312,8 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                             // 检查正式版更新：首先尝试 /releases/latest (官方稳定版接口)
                             try {
                                 val response = client.newRequest().apply {
-                                    setURL("https://api.github.com/repos/Own716/OwnBoxForAndroid/releases/latest")
-                                    setUserAgent("OwnBox/${BuildConfig.VERSION_NAME}")
+                                    setURL("https://api.github.com/repos/smallmu1022-pixel/HuBoxForAndroid/releases/latest")
+                                    setUserAgent("HuBox/${BuildConfig.VERSION_NAME}")
                                     setHeader("Accept", "application/vnd.github.v3+json")
                                 }.execute()
                                 val responseStr = Util.getStringBox(response.contentString)
@@ -339,8 +329,8 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                             // 若 /releases/latest 未取到，在 /releases 列表中查找首个非预发布的正式版本
                             if (releaseName.isNullOrBlank()) {
                                 val response = client.newRequest().apply {
-                                    setURL("https://api.github.com/repos/Own716/OwnBoxForAndroid/releases")
-                                    setUserAgent("OwnBox/${BuildConfig.VERSION_NAME}")
+                                    setURL("https://api.github.com/repos/smallmu1022-pixel/HuBoxForAndroid/releases")
+                                    setUserAgent("HuBox/${BuildConfig.VERSION_NAME}")
                                     setHeader("Accept", "application/vnd.github.v3+json")
                                 }.execute()
                                 val responseStr = Util.getStringBox(response.contentString)
@@ -370,16 +360,16 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                     // 2. 若 API 受到 403 限流或网络异常，无缝降级到静态 properties 源 (全球高速 CDN 托管，无 API 速率限制)
                     if (releaseName.isNullOrBlank() || releaseUrl.isNullOrBlank()) {
                         val staticUrls = listOf(
-                            "https://cdn.jsdelivr.net/gh/Own716/OwnBoxForAndroid@main/nb4a.properties",
-                            "https://fastly.jsdelivr.net/gh/Own716/OwnBoxForAndroid@main/nb4a.properties",
-                            "https://raw.githubusercontent.com/Own716/OwnBoxForAndroid/main/nb4a.properties"
+                            "https://cdn.jsdelivr.net/gh/smallmu1022-pixel/HuBoxForAndroid@HuBoxForAndroid/nb4a.properties",
+                            "https://fastly.jsdelivr.net/gh/smallmu1022-pixel/HuBoxForAndroid@HuBoxForAndroid/nb4a.properties",
+                            "https://raw.githubusercontent.com/smallmu1022-pixel/HuBoxForAndroid/HuBoxForAndroid/nb4a.properties"
                         )
                         var propsContent: String? = null
                         for (staticUrl in staticUrls) {
                             try {
                                 val resp = client.newRequest().apply {
                                     setURL(staticUrl)
-                                    setUserAgent("OwnBox/${BuildConfig.VERSION_NAME}")
+                                    setUserAgent("HuBox/${BuildConfig.VERSION_NAME}")
                                 }.execute()
                                 val body = Util.getStringBox(resp.contentString)
                                 if (body.contains("VERSION_NAME=")) {
@@ -401,7 +391,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                             }
                             if (targetVer.isNotBlank()) {
                                 releaseName = "v$targetVer"
-                                releaseUrl = "https://github.com/Own716/OwnBoxForAndroid/releases/tag/v$targetVer"
+                                releaseUrl = "https://github.com/smallmu1022-pixel/HuBoxForAndroid/releases/tag/v$targetVer"
                             }
                         }
                     }
@@ -410,7 +400,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                         throw IllegalStateException("无法获取版本信息，请检查网络或稍后重试")
                     }
 
-                    val cleanReleaseName = releaseName.replace(Regex("(?i)^Ownbox\\s*"), "")
+                    val cleanReleaseName = releaseName.replace(Regex("(?i)^Hubox\\s*"), "")
                     val cmp = compareVersionNames(cleanReleaseName, currentCompareVersion)
                     val haveUpdate = cleanReleaseName.isNotBlank() && cmp > 0
 
@@ -470,7 +460,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
 
             /**
              * Compares two version strings according to Semantic Versioning principles:
-             * 1. Strips leading 'v', 'V', or 'OwnBox ' prefix.
+             * 1. Strips leading 'v', 'V', or 'HuBox ' prefix.
              * 2. Extracts base version numbers (before '-') and compares them numerically segment by segment.
              * 3. When numeric segments are identical:
              *    - A version without a prerelease suffix (e.g. "26.11.2") is HIGHER than a version with a prerelease suffix (e.g. "26.11.2-preview").
@@ -533,7 +523,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
 
             private fun cleanVersion(v: String): String =
                 v.trim()
-                    .replace(Regex("(?i)^Ownbox\\s*"), "")
+                    .replace(Regex("(?i)^Hubox\\s*"), "")
                     .replace(Regex("(?i)^v"), "")
                     .trim()
 

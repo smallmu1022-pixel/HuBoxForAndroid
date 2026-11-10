@@ -16,14 +16,6 @@
             app:title="@string/night_mode"
             app:useSimpleSummaryProvider="true" />
         <moe.matsuri.nb4a.ui.SimpleMenuPreference
-            app:defaultValue="0"
-            app:entries="@array/app_icon_mode_entries"
-            app:entryValues="@array/int_array_3"
-            app:icon="@drawable/solar_widget_2_linear"
-            app:key="appIconMode"
-            app:title="@string/app_icon_mode"
-            app:useSimpleSummaryProvider="true" />
-        <moe.matsuri.nb4a.ui.SimpleMenuPreference
             app:defaultValue=""
             app:entries="@array/language_entries"
             app:entryValues="@array/language_values"

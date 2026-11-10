@@ -43,4 +43,4 @@
             document.body.insertBefore(message, document.body.firstChild);
         }, {once: true});
     }
-})(__OWNBOX_YACD_CONFIG__);
+})(__HUBOX_YACD_CONFIG__);

@@ -21,7 +21,7 @@ import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.databinding.ActivityNodeSelectDialogBinding
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
-import io.nekohasekai.sagernet.widget.OwnBoxWidgetProvider
+import io.nekohasekai.sagernet.widget.HuBoxWidgetProvider
 
 class NodeSelectDialogActivity : AppCompatActivity() {
 
@@ -113,7 +113,7 @@ class NodeSelectDialogActivity : AppCompatActivity() {
             if (DataStore.serviceState.started) {
                 SagerNet.reloadService()
             }
-            OwnBoxWidgetProvider.updateWidgets(this@NodeSelectDialogActivity)
+            HuBoxWidgetProvider.updateWidgets(this@NodeSelectDialogActivity)
 
             onMainDispatcher {
                 finishWithFade()

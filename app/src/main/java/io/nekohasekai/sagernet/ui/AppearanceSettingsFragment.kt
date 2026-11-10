@@ -18,7 +18,6 @@ import androidx.preference.SwitchPreferenceCompat
 import androidx.preference.TwoStatePreference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.Action
-import io.nekohasekai.sagernet.AppIconManager
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.bg.LiveUpdateFormatter
@@ -51,13 +50,6 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         preferenceManager.preferenceDataStore = DataStore.configurationStore
         setPreferencesFromResource(R.xml.settings_appearance, rootKey)
         tintPreferenceIcons(preferenceScreen, Theme.getPrimaryColor(requireContext()))
-
-        findPreference<SimpleMenuPreference>(Key.APP_ICON_MODE)?.setOnPreferenceChangeListener { _, newMode ->
-            val mode = (newMode as String).toInt()
-            DataStore.appIconMode = mode
-            AppIconManager.applyIconMode(requireContext(), mode = mode, force = true)
-            true
-        }
 
         val profileTrafficStatistics =
             findPreference<SwitchPreferenceCompat>(Key.PROFILE_TRAFFIC_STATISTICS)

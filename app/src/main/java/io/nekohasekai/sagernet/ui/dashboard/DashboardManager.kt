@@ -316,7 +316,7 @@ object DashboardManager {
         try {
             val request = Request.Builder()
                 .url(normalizedUrl)
-                .header("User-Agent", "Mozilla/5.0 (Android) OwnBox-Dashboard-Test")
+                .header("User-Agent", "Mozilla/5.0 (Android) HuBox-Dashboard-Test")
                 .build()
             client.newCall(request).execute().use { response ->
                 httpStatus = response.code

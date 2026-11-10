@@ -51,7 +51,7 @@ object LocalYacdDashboard {
             .put("storageError", storageError).toString()
             .replace("<", "\\u003c").replace(">", "\\u003e")
             .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
-        return "<script>" + script.replace("__OWNBOX_YACD_CONFIG__", settings) + "</script>"
+        return "<script>" + script.replace("__HUBOX_YACD_CONFIG__", settings) + "</script>"
     }
 
     fun errorHtml(message: String, reload: String): String {

@@ -1,2 +1,2 @@
 include(":app")
-rootProject.name = "OwnBox"
+rootProject.name = "HuBox"

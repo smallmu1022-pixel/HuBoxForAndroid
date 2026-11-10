@@ -26,13 +26,6 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <View
-                android:id="@+id/toolbar_capsules_bg"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clickable="false"
-                android:focusable="false" />
-
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
@@ -59,7 +52,7 @@
                 android:elevation="12dp"
                 android:text="@string/app_name"
                 android:textColor="?android:attr/textColorPrimary"
-                android:textSize="17.5sp"
+                android:textSize="16sp"
                 android:letterSpacing="-0.01"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"
@@ -80,7 +73,7 @@
         android:paddingBottom="5dp"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:background="@drawable/bg_tab_outer_capsule"
+        android:background="@android:color/transparent"
         android:visibility="gone">
 
         <com.google.android.material.tabs.TabLayout
@@ -96,7 +89,7 @@
             app:tabIndicatorGravity="center"
             app:tabIndicatorHeight="30dp"
             app:tabIndicatorFullWidth="true"
-            app:tabIndicatorAnimationMode="elastic"
+            app:tabIndicatorAnimationMode="linear"
             app:tabMode="scrollable"
             app:tabPaddingStart="14dp"
             app:tabPaddingEnd="14dp"
