@@ -919,7 +919,7 @@
     <string name="smart_country_in">印度 (IN)</string>
     <string name="smart_country_vn">越南 (VN)</string>
     <string name="smart_country_br">巴西 (BR)</string>
-    <string name="status_smart_routing">走智慧分流</string>
+    <string name="status_smart_routing">智慧分流</string>
     <string name="status_global_active">全域生效中</string>
     <string name="status_rule_active">按規則運作</string>
 </resources>
