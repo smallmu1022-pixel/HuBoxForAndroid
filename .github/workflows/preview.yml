@@ -119,7 +119,7 @@ jobs:
             if [ -f "$apk" ]; then
               signed_apk="${apk%-unsigned.apk}-signed.apk"
               echo "Signing $apk -> $signed_apk"
-              $APKSIGNER sign --ks release.keystore --ks-pass pass:"$KEYSTORE_PASS" --key-pass pass:"${ALIAS_PASS:-$KEYSTORE_PASS}" --ks-key-alias "${ALIAS_NAME:-ownbox}" --out "$signed_apk" "$apk"
+              $APKSIGNER sign --ks release.keystore --ks-pass pass:"$KEYSTORE_PASS" --key-pass pass:"${ALIAS_PASS:-$KEYSTORE_PASS}" --ks-key-alias "${ALIAS_NAME:-hubox}" --out "$signed_apk" "$apk"
               rm "$apk"
             fi
           done
@@ -169,14 +169,14 @@ jobs:
       - name: Sync Release Notes
         run: |
           if [ -f CHANGELOG.md ]; then
-            awk '/^# OwnBox for Android v/{if(found) exit; found=1} found' CHANGELOG.md > RELEASE_NOTES.md
+            awk '/^# HuBox for Android v/{if(found) exit; found=1} found' CHANGELOG.md > RELEASE_NOTES.md
           fi
           cat RELEASE_NOTES.md
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.PRE_VERSION }}
-          name: OwnBox v${{ env.PRE_VERSION }}
+          name: HuBox v${{ env.PRE_VERSION }}
           body_path: RELEASE_NOTES.md
           files: |
             apks/*.apk
