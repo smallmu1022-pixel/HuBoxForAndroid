@@ -99,6 +99,13 @@ jobs:
             echo "::error::Release signing credentials missing. Refusing to build unsigned release."
             exit 1
           fi
+          # Diagnostics: print keystore hash + alias list (no secret values printed)
+          echo "=== signing diagnostics ==="
+          sha256sum release.keystore || true
+          KEYTOOL="${JAVA_HOME}/bin/keytool"
+          [ -x "$KEYTOOL" ] || KEYTOOL="keytool"
+          "$KEYTOOL" -list -keystore release.keystore -storepass "$KEYSTORE_PASS" 2>&1 | sed 's/^/keytool: /' || true
+          echo "=== end diagnostics ==="
           echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> local.properties
           echo "ALIAS_NAME=$ALIAS_NAME" >> local.properties
           # PKCS12 keystore: the key password must equal the store password
