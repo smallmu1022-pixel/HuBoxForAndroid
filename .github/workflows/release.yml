@@ -101,7 +101,9 @@ jobs:
           fi
           echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> local.properties
           echo "ALIAS_NAME=$ALIAS_NAME" >> local.properties
-          echo "ALIAS_PASS=$ALIAS_PASS" >> local.properties
+          # PKCS12 keystore: the key password must equal the store password
+          # (keytool ignores a separate -keypass), so do not use ALIAS_PASS here.
+          echo "ALIAS_PASS=$KEYSTORE_PASS" >> local.properties
 
           export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
           ./run init action gradle
@@ -123,7 +125,7 @@ jobs:
             if [ -f "$apk" ]; then
               signed_apk="${apk%-unsigned.apk}-signed.apk"
               echo "Signing $apk -> $signed_apk"
-              $APKSIGNER sign --ks release.keystore --ks-pass pass:"$KEYSTORE_PASS" --key-pass pass:"${ALIAS_PASS:-$KEYSTORE_PASS}" --ks-key-alias "${ALIAS_NAME:-hubox}" --out "$signed_apk" "$apk"
+              $APKSIGNER sign --ks release.keystore --ks-pass pass:"$KEYSTORE_PASS" --key-pass pass:"$KEYSTORE_PASS" --ks-key-alias "${ALIAS_NAME:-hubox}" --out "$signed_apk" "$apk"
               rm "$apk"
             fi
           done
