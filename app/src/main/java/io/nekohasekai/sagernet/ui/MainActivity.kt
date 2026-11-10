@@ -844,14 +844,16 @@ class MainActivity : ThemedActivity(),
             ColorUtils.calculateLuminance(themeColor) > 0.50 -> ColorUtils.blendARGB(themeColor, Color.BLACK, 0.35f)
             else -> themeColor
         }
+        // HuBox V1.0.1: selected proxy-mode button and smart-routing pill are highlight green
+        val modeAccent = Color.parseColor("#4CAF50")
         val onSurfaceColor = getColorAttr(R.attr.colorOnSurface)
         val onSurfaceVariantColor = getColorAttr(R.attr.colorOnSurfaceVariant)
 
-        // 3A: Selected mode button uses theme color border + soft theme fill + theme icon/text
+        // 3A: Selected mode button uses green highlight border + soft green fill + green icon/text
         if (isSmart) {
-            btnSmart.background = createActiveModeToggleBackground(themeColor, isDark)
-            iconSmart.drawable?.mutate()?.setTint(accentTextColor)
-            textSmart.setTextColor(accentTextColor)
+            btnSmart.background = createActiveModeToggleBackground(modeAccent, isDark)
+            iconSmart.drawable?.mutate()?.setTint(modeAccent)
+            textSmart.setTextColor(modeAccent)
         } else {
             btnSmart.setBackgroundResource(R.drawable.bg_proxy_mode_btn_inactive)
             iconSmart.drawable?.mutate()?.setTint(onSurfaceVariantColor)
@@ -859,9 +861,9 @@ class MainActivity : ThemedActivity(),
         }
 
         if (isGlobal) {
-            btnGlobal.background = createActiveModeToggleBackground(themeColor, isDark)
-            iconGlobal.drawable?.mutate()?.setTint(accentTextColor)
-            textGlobal.setTextColor(accentTextColor)
+            btnGlobal.background = createActiveModeToggleBackground(modeAccent, isDark)
+            iconGlobal.drawable?.mutate()?.setTint(modeAccent)
+            textGlobal.setTextColor(modeAccent)
         } else {
             btnGlobal.setBackgroundResource(R.drawable.bg_proxy_mode_btn_inactive)
             iconGlobal.drawable?.mutate()?.setTint(onSurfaceVariantColor)
@@ -908,12 +910,12 @@ class MainActivity : ThemedActivity(),
                 isSmart -> {
                     btnCustomRoute?.setBackgroundResource(R.drawable.bg_proxy_mode_row)
                     iconCustomRoute?.drawable?.mutate()?.setTint(onSurfaceColor)
-                    chipCustomRoute.background = createThemeStatusChipBackground(themeColor, isDark)
+                    chipCustomRoute.background = createThemeStatusChipBackground(modeAccent, isDark)
                     textStatusCustomRoute.text = getString(R.string.status_smart_routing)
-                    textStatusCustomRoute.setTextColor(accentTextColor)
+                    textStatusCustomRoute.setTextColor(modeAccent)
                     dotStatusCustomRoute.background = GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
-                        setColor(accentTextColor)
+                        setColor(modeAccent)
                     }
                 }
                 isGlobal -> {

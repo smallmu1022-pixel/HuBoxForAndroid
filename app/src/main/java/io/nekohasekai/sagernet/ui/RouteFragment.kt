@@ -1,7 +1,11 @@
 package io.nekohasekai.sagernet.ui
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
@@ -89,6 +93,16 @@ class RouteFragment : ToolbarFragment(R.layout.layout_route), Toolbar.OnMenuItem
         ViewCompat.setOnApplyWindowInsetsListener(view, ListListener)
         toolbar.setTitle(R.string.menu_route)
         toolbar.inflateMenu(R.menu.add_route_menu)
+        // HuBox V1.0.1: "立即更新远程规则集" menu item is highlight green
+        toolbar.menu.findItem(R.id.action_update_rule_sets)?.let { item ->
+            val title = item.title ?: return@let
+            item.title = SpannableString(title).apply {
+                setSpan(
+                    ForegroundColorSpan(Color.parseColor("#4CAF50")),
+                    0, length, Spanned.SPAN_INCLUSIVE_INCLUSIVE
+                )
+            }
+        }
         toolbar.setOnMenuItemClickListener(this)
 
         ruleListView = view.findViewById(R.id.route_list)

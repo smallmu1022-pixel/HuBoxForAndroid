@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -33,13 +31,10 @@ import android.graphics.Typeface
 import android.util.TypedValue
 import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.PopupMenu
-import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.net.toUri
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.view.size
@@ -48,7 +43,6 @@ import android.view.Gravity
 import androidx.core.widget.addTextChangedListener
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.utils.CountryFlagUtils
-import kotlinx.coroutines.delay
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceDataStore
@@ -181,7 +175,6 @@ class ConfigurationFragment @JvmOverloads constructor(
 ) : ToolbarFragment(R.layout.layout_group_list),
     PopupMenu.OnMenuItemClickListener,
     Toolbar.OnMenuItemClickListener,
-    SearchView.OnQueryTextListener,
     OnPreferenceDataStoreChangeListener {
 
     interface SelectCallback {
@@ -231,7 +224,6 @@ class ConfigurationFragment @JvmOverloads constructor(
     @Volatile
     private var selectedProxySnapshot = selectedItem?.id ?: 0L
 
-    var currentSearchQuery: String = ""
 
     @Volatile
     private var currentProfileSnapshot = 0L
@@ -383,9 +375,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 val group = adapter.groupList[position]
                 adapter.selectedGroupIndex = position
                 updateToolbarMenuTitles()
-                if (currentSearchQuery.isNotEmpty()) {
-                    getCurrentGroupFragment()?.adapter?.filter(currentSearchQuery)
-                }
                 // Skip updating DataStore.selectedGroup for the synthetic "All" tab
                 if (group.id == ALL_GROUPS_SENTINEL_ID) return
                 if (DataStore.selectedGroup != group.id) {
@@ -393,76 +382,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             }
         }
-    }
-
-    val isSearchActive: Boolean
-        get() {
-            val searchItem = if (isToolbarInitialized) toolbar.menu.findItem(R.id.action_search) else null
-            val searchView = (searchItem?.actionView as? SearchView) ?: (if (isToolbarInitialized) toolbar.findViewById<SearchView>(R.id.action_search) else null)
-            return searchView != null && !searchView.isIconified
-        }
-
-    private var searchJob: Job? = null
-
-    override fun onQueryTextChange(query: String): Boolean {
-        currentSearchQuery = query
-        searchJob?.cancel()
-        searchJob = lifecycleScope.launch {
-            if (query.isNotBlank()) {
-                delay(180)
-            }
-            val groupFragment = getCurrentGroupFragment() ?: return@launch
-            val adapter = groupFragment.adapter ?: return@launch
-            val trimmed = query.trim()
-            if (trimmed.isEmpty()) {
-                adapter.filter("")
-            } else {
-                val lower = trimmed.lowercase()
-                val matched = withContext(Dispatchers.Default) {
-                    val all = adapter.allConfigurationIdList
-                    val map = adapter.configurationList
-                    all.filter { id ->
-                        val entity = map[id] ?: return@filter false
-                        (entity.displayName()?.lowercase()?.contains(lower) == true) ||
-                                (entity.displayType()?.lowercase()?.contains(lower) == true) ||
-                                (entity.displayAddress()?.lowercase()?.contains(lower) == true)
-                    }
-                }
-                adapter.applyFilterResult(matched)
-            }
-            updateToolbarMenuTitles()
-        }
-        return true
-    }
-
-    override fun onQueryTextSubmit(query: String): Boolean {
-        currentSearchQuery = query
-        searchJob?.cancel()
-        val groupFragment = getCurrentGroupFragment()
-        val adapter = groupFragment?.adapter
-        if (adapter != null) {
-            val trimmed = query.trim()
-            if (trimmed.isEmpty()) {
-                adapter.filter("")
-            } else {
-                val lower = trimmed.lowercase()
-                lifecycleScope.launch {
-                    val matched = withContext(Dispatchers.Default) {
-                        val all = adapter.allConfigurationIdList
-                        val map = adapter.configurationList
-                        all.filter { id ->
-                            val entity = map[id] ?: return@filter false
-                            (entity.displayName()?.lowercase()?.contains(lower) == true) ||
-                                    (entity.displayType()?.lowercase()?.contains(lower) == true) ||
-                                    (entity.displayAddress()?.lowercase()?.contains(lower) == true)
-                        }
-                    }
-                    adapter.applyFilterResult(matched)
-                    updateToolbarMenuTitles()
-                }
-            }
-        }
-        return true
     }
 
     fun styleSortAndLayoutHeaders(menu: Menu) {
@@ -612,8 +531,9 @@ class ConfigurationFragment @JvmOverloads constructor(
     private fun applyActionMenuSpacing(menuView: ActionMenuView) {
         if (isAdjustingMenuSpacing) return
         val iconFactor = UiScaleManager.toolbarIconFactor()
-        val minW = (dp2px(32) * iconFactor).toInt().coerceIn(dp2px(22), dp2px(44))
-        val gap = dp2px(2)
+        // HuBox V1.0.1: each top-bar action gets a >=48dp touch target, and icons are spaced wider apart
+        val minW = (dp2px(48) * iconFactor).toInt().coerceIn(dp2px(48), dp2px(56))
+        val gap = dp2px(8)
         val cardMargin = dp2px(8)
         val padH = dp2px(6)
         val endMargin = cardMargin + padH
@@ -621,7 +541,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
         menuView.clipChildren = false
         menuView.clipToPadding = false
-        menuView.minimumWidth = minW * 5 + gap * 4 + endMargin
+        menuView.minimumWidth = minW * 4 + gap * 3 + endMargin
 
         try {
             val cellField = ActionMenuView::class.java.getDeclaredField("mMinCellSize")
@@ -634,63 +554,21 @@ class ConfigurationFragment @JvmOverloads constructor(
             padField.setInt(menuView, 0)
         } catch (_: Throwable) {}
 
-        val searchItem = if (isToolbarInitialized) toolbar.menu.findItem(R.id.action_search) else null
-        val sv = searchItem?.actionView as? SearchView
-        val isSearching = sv != null && !sv.isIconified
-
         for (j in 0 until menuView.childCount) {
             val item = menuView.getChildAt(j)
             if (item is ViewGroup) {
                 item.clipChildren = false
                 item.clipToPadding = false
             }
-            if (item is SearchView) {
-                item.setPadding(0, 0, 0, 0)
-                val sBar = item.findViewById<View>(androidx.appcompat.R.id.search_bar)
-                (sBar as? ViewGroup)?.apply {
-                    clipChildren = false
-                    clipToPadding = false
-                }
-                sBar?.setPadding(0, 0, 0, 0)
-                (sBar?.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
-                    if (lp.leftMargin != 0 || lp.rightMargin != 0) {
-                        lp.leftMargin = 0
-                        lp.rightMargin = 0
-                        sBar.layoutParams = lp
-                    }
-                }
-                val sBtn = item.findViewById<ImageView>(androidx.appcompat.R.id.search_button)
-                sBtn?.apply {
-                    minimumWidth = minW
-                    maxWidth = minW
-                    setPadding(0, 0, 0, 0)
-                    scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    scaleX = iconScale
-                    scaleY = iconScale
-                    (layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
-                        if (lp.width != minW || lp.leftMargin != 0 || lp.rightMargin != 0) {
-                            lp.width = minW
-                            lp.leftMargin = 0
-                            lp.rightMargin = 0
-                            layoutParams = lp
-                        }
-                    }
-                }
-                if (!isSearching) {
-                    item.minimumWidth = minW
-                    item.maxWidth = minW
-                }
-            } else {
-                try {
-                    val field = item.javaClass.getDeclaredField("mMinWidth")
-                    field.isAccessible = true
-                    field.setInt(item, minW)
-                } catch (_: Throwable) {}
-                item.minimumWidth = minW
-                item.setPadding(0, 0, 0, 0)
-                item.scaleX = iconScale
-                item.scaleY = iconScale
-            }
+            try {
+                val field = item.javaClass.getDeclaredField("mMinWidth")
+                field.isAccessible = true
+                field.setInt(item, minW)
+            } catch (_: Throwable) {}
+            item.minimumWidth = minW
+            item.setPadding(0, 0, 0, 0)
+            item.scaleX = iconScale
+            item.scaleY = iconScale
             (item.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
                 if (lp.leftMargin != 0 || lp.rightMargin != 0) {
                     lp.leftMargin = 0
@@ -700,7 +578,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
         }
 
-        if (!isSearching && menuView.width > 0 && menuView.height > 0) {
+        if (menuView.width > 0 && menuView.height > 0) {
             isAdjustingMenuSpacing = true
             try {
                 val visibleChildren = mutableListOf<View>()
@@ -721,12 +599,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                         val bottom = menuView.height
                         child.measure(wSpec, hSpec)
                         child.layout(left, top, currentRight, bottom)
-                        if (child is SearchView) {
-                            val sBar = child.findViewById<View>(androidx.appcompat.R.id.search_bar)
-                            val sBtn = child.findViewById<ImageView>(androidx.appcompat.R.id.search_button)
-                            sBar?.layout(0, 0, minW, bottom)
-                            sBtn?.layout(0, 0, minW, bottom)
-                        }
                         currentRight = left - gap
                     }
                 }
@@ -739,11 +611,8 @@ class ConfigurationFragment @JvmOverloads constructor(
     private fun updateToolbarMenuTitles() {
         if (!isToolbarInitialized) return
         val isAll = isCurrentAllGroups()
-        val isSearching = currentSearchQuery.isNotBlank()
         val exportItem = toolbar.menu.findItem(R.id.action_export)
-        if (isSearching) {
-            exportItem?.title = "导出搜索结果"
-        } else if (isAll) {
+        if (isAll) {
             exportItem?.title = "导出配置（全部）"
         } else {
             exportItem?.title = "导出配置（本组）"
@@ -766,49 +635,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             toolbar.menu.findItem(R.id.action_remove_duplicate)?.setTitle(R.string.remove_duplicate)
             toolbar.menu.findItem(R.id.action_connection_test_clear_results)?.setTitle(R.string.connection_test_clear_results)
             toolbar.menu.findItem(R.id.action_connection_test_delete_unavailable)?.setTitle(R.string.connection_test_delete_unavailable)
-        }
-    }
-
-    private fun showSoftKeyboard(view: View?) {
-        if (view == null) return
-        view.post {
-            view.requestFocus()
-            val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            imm?.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
-            activity?.window?.let { win ->
-                WindowCompat.getInsetsController(win, view).show(WindowInsetsCompat.Type.ime())
-            }
-        }
-    }
-
-    private fun updateSearchMaxWidth(searchView: SearchView) {
-        if (!isToolbarInitialized) return
-        if (searchView.isIconified) {
-            searchView.maxWidth = dp2px(32)
-            return
-        }
-        val tbWidth = toolbar.width
-        if (tbWidth > 0) {
-            val maxW = (tbWidth - dp2px(112)).coerceAtLeast(dp2px(160))
-            if (searchView.maxWidth != maxW) {
-                searchView.maxWidth = maxW
-            }
-        } else {
-            toolbar.post {
-                if (isAdded && !isDetached && isToolbarInitialized) {
-                    if (searchView.isIconified) {
-                        searchView.maxWidth = dp2px(32)
-                        return@post
-                    }
-                    val postW = toolbar.width
-                    if (postW > 0) {
-                        val maxW = (postW - dp2px(112)).coerceAtLeast(dp2px(160))
-                        if (searchView.maxWidth != maxW) {
-                            searchView.maxWidth = maxW
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -877,11 +703,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             toolbar.overflowIcon = tinted
         }
         tintMenuIcons(toolbar.menu, iconColor)
-        val searchItem = toolbar.menu.findItem(R.id.action_search)
-        val sv = (searchItem?.actionView as? SearchView) ?: toolbar.findViewById<SearchView>(R.id.action_search)
-        sv?.findViewById<ImageView>(androidx.appcompat.R.id.search_button)?.setColorFilter(iconColor)
-        sv?.findViewById<ImageView>(androidx.appcompat.R.id.search_mag_icon)?.setColorFilter(iconColor)
-        sv?.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)?.setColorFilter(iconColor)
     }
 
     private fun styleGroupTabLayout() {
@@ -968,108 +789,6 @@ class ConfigurationFragment @JvmOverloads constructor(
         tabLayout.setSelectedTabIndicatorColor(capsuleBg)
         tabLayout.setTabTextColors(unselectedText, selectedText)
         tabLayout.tabRippleColor = android.content.res.ColorStateList.valueOf(Color.TRANSPARENT)
-    }
-
-    private fun styleSearchView(searchView: SearchView) {
-        val ctx = context ?: return
-        val textColor: Int
-        val hintColor: Int
-        when {
-            Theme.isBlackTheme(ctx) -> {
-                textColor = Color.WHITE
-                hintColor = Color.parseColor("#CAC4D0")
-            }
-            Theme.isWhiteTheme(ctx) -> {
-                textColor = Color.parseColor("#212121")
-                hintColor = Color.parseColor("#8A000000")
-            }
-            Theme.isLightGrayTheme(ctx) -> {
-                textColor = Color.parseColor("#1F2937")
-                hintColor = Color.parseColor("#6B7280")
-            }
-            else -> {
-                textColor = ctx.getColorAttr(android.R.attr.textColorPrimary)
-                hintColor = ctx.getColorAttr(android.R.attr.textColorSecondary)
-            }
-        }
-        val editText = searchView.findViewById<SearchView.SearchAutoComplete>(androidx.appcompat.R.id.search_src_text)
-        editText?.setTextColor(textColor)
-        editText?.setHintTextColor(hintColor)
-        editText?.imeOptions = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_FULLSCREEN
-
-        searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                showSoftKeyboard(editText)
-            }
-        }
-        editText?.setOnClickListener {
-            showSoftKeyboard(editText)
-        }
-
-        val iconColor = resolveTopBarIconTint(ctx)
-        val closeBtn = searchView.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
-        closeBtn?.setColorFilter(iconColor)
-
-        // Ensure close button stays visible while search is active
-        editText?.addTextChangedListener {
-            if (!searchView.isIconified) {
-                closeBtn?.visibility = View.VISIBLE
-            }
-        }
-
-        closeBtn?.setOnClickListener {
-            val text = editText?.text?.toString().orEmpty()
-            if (text.isNotEmpty()) {
-                editText?.setText("")
-                currentSearchQuery = ""
-                searchJob?.cancel()
-                getCurrentGroupFragment()?.adapter?.filter("")
-                updateToolbarMenuTitles()
-                closeBtn.post {
-                    if (!searchView.isIconified) {
-                        closeBtn.visibility = View.VISIBLE
-                    }
-                }
-            } else {
-                cancelSearch(searchView)
-            }
-        }
-
-        val iconFactor = UiScaleManager.toolbarIconFactor()
-        val btnW = (dp2px(33) * iconFactor).toInt().coerceIn(dp2px(22), dp2px(46))
-        val iconScale = 0.88f * iconFactor
-        searchView.clipChildren = false
-        searchView.clipToPadding = false
-        searchView.setPadding(0, 0, 0, 0)
-        val searchBar = searchView.findViewById<View>(androidx.appcompat.R.id.search_bar)
-        (searchBar as? ViewGroup)?.apply {
-            clipChildren = false
-            clipToPadding = false
-        }
-        searchBar?.setPadding(0, 0, 0, 0)
-        (searchBar?.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
-            lp.leftMargin = 0
-            lp.rightMargin = 0
-            searchBar.layoutParams = lp
-        }
-        val searchBtn = searchView.findViewById<ImageView>(androidx.appcompat.R.id.search_button)
-        searchBtn?.setImageResource(R.drawable.ic_baseline_search_24)
-        searchBtn?.setColorFilter(iconColor)
-        searchBtn?.minimumWidth = btnW
-        searchBtn?.maxWidth = btnW
-        searchBtn?.setPadding(0, 0, 0, 0)
-        searchBtn?.scaleType = ImageView.ScaleType.CENTER
-        searchBtn?.scaleX = iconScale
-        searchBtn?.scaleY = iconScale
-        (searchBtn?.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
-            lp.width = btnW
-            lp.leftMargin = 0
-            lp.rightMargin = 0
-            searchBtn.layoutParams = lp
-        }
-        val magBtn = searchView.findViewById<ImageView>(androidx.appcompat.R.id.search_mag_icon)
-        magBtn?.setImageResource(R.drawable.ic_baseline_search_24)
-        magBtn?.setColorFilter(iconColor)
     }
 
     @SuppressLint("DetachAndAttachSameFragment")
@@ -1206,71 +925,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
         }
         styleGroupTabLayout()
-
-        val searchItem = toolbar.menu.findItem(R.id.action_search)
-        val searchView = (searchItem?.actionView as? SearchView) ?: toolbar.findViewById<SearchView>(R.id.action_search)
-        if (searchView != null) {
-            styleSearchView(searchView)
-            updateSearchMaxWidth(searchView)
-            searchView.setOnQueryTextListener(this)
-
-            searchView.setOnSearchClickListener {
-                view.findViewById<View>(R.id.toolbar_title_view)?.visibility = View.GONE
-                toolbar.menu.findItem(R.id.action_add)?.isVisible = false
-                toolbar.menu.findItem(R.id.action_connection_url_test)?.isVisible = false
-                toolbar.menu.findItem(R.id.action_locate_active_profile)?.isVisible = false
-                toolbar.title = null
-                updateSearchMaxWidth(searchView)
-                updateToolbarMenuTitles()
-
-                // Show back navigation arrow on the toolbar for clear exit path
-                if (!select) {
-                    val searchContext = requireContext()
-                    val iconTint = resolveTopBarIconTint(searchContext)
-                    (toolbar as? com.google.android.material.appbar.MaterialToolbar)?.setNavigationIconTint(iconTint)
-                    toolbar.setNavigationIcon(R.drawable.baseline_arrow_back_24)
-                    toolbar.navigationIcon?.let {
-                        val tinted = it.mutate()
-                        DrawableCompat.setTint(tinted, iconTint)
-                        toolbar.navigationIcon = tinted
-                    }
-                    toolbar.setNavigationOnClickListener {
-                        cancelSearch(searchView)
-                    }
-                }
-
-                val editText = searchView.findViewById<SearchView.SearchAutoComplete>(androidx.appcompat.R.id.search_src_text)
-                val closeBtn = searchView.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
-                closeBtn?.visibility = View.VISIBLE
-                showSoftKeyboard(editText)
-            }
-
-            searchView.setOnCloseListener {
-                if (!isCancelingSearch) {
-                    cancelSearch(searchView)
-                }
-                false
-            }
-        }
-
-        toolbar.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
-            val newWidth = right - left
-            val oldWidth = oldRight - oldLeft
-            if (newWidth != oldWidth && newWidth > 0) {
-                val sItem = toolbar.menu.findItem(R.id.action_search)
-                val sv = (sItem?.actionView as? SearchView) ?: toolbar.findViewById<SearchView>(R.id.action_search)
-                if (sv != null) {
-                    if (!sv.isIconified) {
-                        val targetW = (newWidth - dp2px(112)).coerceAtLeast(dp2px(160))
-                        if (sv.maxWidth != targetW) {
-                            sv.maxWidth = targetW
-                        }
-                    } else {
-                        sv.maxWidth = dp2px(32)
-                    }
-                }
-            }
-        }
 
         val tabFactor = UiScaleManager.tabBarFactor()
         val scaledTabHeight = (dp2px(38) * tabFactor).toInt().coerceIn(dp2px(26), dp2px(54)) + dp2px(10)
@@ -1503,12 +1157,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             cancelReorder()
             return true
         }
-        val searchItem = toolbar.menu.findItem(R.id.action_search)
-        val searchView = (searchItem?.actionView as? SearchView) ?: toolbar.findViewById<SearchView>(R.id.action_search)
-        if (searchView != null && !searchView.isIconified) {
-            cancelSearch(searchView)
-            return true
-        }
         return super.onBackPressed()
     }
 
@@ -1516,10 +1164,6 @@ class ConfigurationFragment @JvmOverloads constructor(
         private set
 
     fun enterReorderMode() {
-        if (isSearchActive || currentSearchQuery.isNotBlank()) {
-            safeSnackbar("搜索状态下不支持调整排序")
-            return
-        }
         val currentFrag = getCurrentGroupFragment() ?: return
         if (currentFrag.isAllGroupsTab) {
             safeSnackbar(R.string.reorder_all_groups_not_supported)
@@ -1669,7 +1313,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             cancelReorder()
         }
 
-        toolbar.menu.findItem(R.id.action_search)?.isVisible = false
         toolbar.menu.findItem(R.id.action_add)?.isVisible = false
         toolbar.menu.findItem(R.id.action_connection_url_test)?.isVisible = false
         toolbar.menu.findItem(R.id.action_locate_active_profile)?.isVisible = false
@@ -1701,7 +1344,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
         }
 
-        toolbar.menu.findItem(R.id.action_search)?.isVisible = true
         toolbar.menu.findItem(R.id.action_add)?.isVisible = true
         toolbar.menu.findItem(R.id.action_connection_url_test)?.isVisible = true
         toolbar.menu.findItem(R.id.action_locate_active_profile)?.isVisible = true
@@ -1711,11 +1353,6 @@ class ConfigurationFragment @JvmOverloads constructor(
     }
 
     override fun onKeyDown(ketCode: Int, event: KeyEvent): Boolean {
-        val searchItem = if (isToolbarInitialized) toolbar.menu.findItem(R.id.action_search) else null
-        val searchView = (searchItem?.actionView as? SearchView) ?: (if (isToolbarInitialized) toolbar.findViewById<SearchView>(R.id.action_search) else null)
-        if (searchView != null && (!searchView.isIconified || searchView.hasFocus())) {
-            return false
-        }
         if (ketCode == KeyEvent.KEYCODE_DPAD_UP || ketCode == KeyEvent.KEYCODE_DPAD_DOWN) {
             val fragment = getCurrentGroupFragment()
             fragment?.configurationListView?.apply {
@@ -2165,13 +1802,12 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             R.id.action_export_clipboard -> {
-                val isSearching = currentSearchQuery.isNotBlank()
                 val isAll = isCurrentAllGroups()
                 runOnDefaultDispatcher {
                     val (profiles, _) = getProfilesForExport()
                     if (profiles.isEmpty()) {
                         onMainDispatcher {
-                            if (isSearching) safeSnackbar("未找到匹配的搜索结果") else safeSnackbar(R.string.no_proxies_found_in_subscription)
+                            safeSnackbar(R.string.no_proxies_found_in_subscription)
                         }
                         return@runOnDefaultDispatcher
                     }
@@ -2189,9 +1825,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     onMainDispatcher {
                         SagerNet.trySetPrimaryClip(links)
                         val count = profiles.size
-                        val msg = if (isSearching) {
-                            "已将 $count 个搜索结果导出到剪贴板"
-                        } else if (isAll) {
+                        val msg = if (isAll) {
                             "已将全部 $count 个配置导出到剪贴板"
                         } else {
                             "已将本组 $count 个配置导出到剪贴板"
@@ -2203,13 +1837,12 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             R.id.action_export_file -> {
-                val isSearching = currentSearchQuery.isNotBlank()
                 val isAll = isCurrentAllGroups()
                 runOnDefaultDispatcher {
                     val (profiles, name) = getProfilesForExport()
                     if (profiles.isEmpty()) {
                         onMainDispatcher {
-                            if (isSearching) safeSnackbar("未找到匹配的搜索结果") else safeSnackbar(R.string.no_proxies_found_in_subscription)
+                            safeSnackbar(R.string.no_proxies_found_in_subscription)
                         }
                         return@runOnDefaultDispatcher
                     }
@@ -2233,12 +1866,11 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             R.id.action_export_qr -> {
-                val isSearching = currentSearchQuery.isNotBlank()
                 runOnDefaultDispatcher {
                     val (profiles, _) = getProfilesForExport()
                     if (profiles.isEmpty()) {
                         onMainDispatcher {
-                            if (isSearching) safeSnackbar("未找到匹配的搜索结果") else safeSnackbar(R.string.no_proxies_found_in_subscription)
+                            safeSnackbar(R.string.no_proxies_found_in_subscription)
                         }
                         return@runOnDefaultDispatcher
                     }
@@ -3444,10 +3076,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
             checkOrderMenu()
             updateSubscriptionInfoCard()
-            val pf = parentFragment as? ConfigurationFragment
-            if (pf == null || (!pf.isSearchActive && pf.currentSearchQuery.isBlank())) {
-                configurationListView.requestFocus()
-            }
+            configurationListView.requestFocus()
         }
 
         fun checkOrderMenu() {
@@ -4796,15 +4425,15 @@ class ConfigurationFragment @JvmOverloads constructor(
                     }
                 )
                 if (DataStore.profileCardStyle == 1) {
-                    val primary = ctx.getColorAttr(R.attr.colorPrimary)
                     selectedIndicator.isVisible = false
                     card.cardElevation = 0f
                     card.strokeWidth = ctx.resources.getDimensionPixelSize(
                         if (selected) R.dimen.card_stroke_width_selected
                         else R.dimen.card_stroke_width
                     )
+                    // HuBox V1.0.1: selected card outline is highlight green
                     card.strokeColor =
-                        if (selected) primary else ctx.getColour(R.color.card_stroke)
+                        if (selected) Color.parseColor("#4CAF50") else ctx.getColour(R.color.card_stroke)
                 } else {
                     selectedIndicator.isVisible = selected
                     card.strokeWidth = 0
@@ -5281,16 +4910,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     private fun getProfilesForExport(): Pair<List<ProxyEntity>, String> {
         val isAll = isCurrentAllGroups()
-        val isSearching = currentSearchQuery.isNotBlank()
         val currentFragment = getCurrentGroupFragment()
-
-        if (isSearching && currentFragment?.adapter != null) {
-            val ad = currentFragment.adapter!!
-            val list = ad.configurationIdList.mapNotNull { id ->
-                ad.configurationList[id] ?: ProfileManager.getProfile(id)
-            }
-            return Pair(list, "search_${currentSearchQuery.trim()}")
-        }
 
         if (isAll) {
             val list = SagerDatabase.proxyDao.getAll().filter { !DataStore.isGroupDisabled(it.groupId) }
@@ -5301,63 +4921,6 @@ class ConfigurationFragment @JvmOverloads constructor(
         val group = SagerDatabase.groupDao.getById(groupId)
         val list = if (DataStore.isGroupDisabled(groupId)) emptyList() else SagerDatabase.proxyDao.getByGroup(groupId)
         return Pair(list, group?.displayName() ?: "group_$groupId")
-    }
-
-    private var isCancelingSearch = false
-
-    private fun cancelSearch(searchView: SearchView) {
-        if (isCancelingSearch) return
-        isCancelingSearch = true
-        try {
-            currentSearchQuery = ""
-            searchJob?.cancel()
-            getCurrentGroupFragment()?.adapter?.filter("")
-
-            searchView.setQuery("", false)
-            searchView.onActionViewCollapsed()
-            val searchItem = toolbar.menu.findItem(R.id.action_search)
-            searchItem?.collapseActionView()
-            searchView.clearFocus()
-            searchView.maxWidth = dp2px(32)
-
-            val cancelContext = requireContext()
-            val primaryColor = when {
-                Theme.isBlackTheme(cancelContext) -> Color.WHITE
-                Theme.isWhiteTheme(cancelContext) -> Color.parseColor("#212121")
-                Theme.isLightGrayTheme(cancelContext) -> Color.parseColor("#1F2937")
-                else -> cancelContext.getColorAttr(android.R.attr.textColorPrimary)
-            }
-
-            view?.findViewById<View>(R.id.toolbar_title_view)?.let { tv ->
-                tv.visibility = View.VISIBLE
-                (tv as? TextView)?.text = getToolbarTitleText()
-                (tv as? TextView)?.setTextColor(primaryColor)
-            }
-            toolbar.menu.findItem(R.id.action_add)?.isVisible = true
-            toolbar.menu.findItem(R.id.action_connection_url_test)?.isVisible = true
-            toolbar.menu.findItem(R.id.action_locate_active_profile)?.isVisible = true
-            toolbar.title = null
-
-            if (!select) {
-                toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
-                toolbar.setNavigationOnClickListener {
-                    (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
-                }
-            }
-
-            applyTopBarIconTint(resolveTopBarIconTint(cancelContext))
-            adjustToolbarActionButtons()
-
-            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            imm?.hideSoftInputFromWindow(searchView.windowToken, 0)
-            updateToolbarMenuTitles()
-            toolbar.post {
-                toolbar.requestLayout()
-                adjustToolbarActionButtons()
-            }
-        } finally {
-            isCancelingSearch = false
-        }
     }
 
 }
