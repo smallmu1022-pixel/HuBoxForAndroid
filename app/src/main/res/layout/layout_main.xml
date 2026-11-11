@@ -218,13 +218,13 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@drawable/bg_drawer_panel"
+        android:background="?attr/colorSurface"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/drawer_brand"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="48dp"
             android:gravity="center_vertical"
             android:paddingStart="22dp"
             android:paddingEnd="22dp"
@@ -260,8 +260,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingTop="6dp"
-                    android:paddingBottom="12dp" />
+                    android:paddingTop="4dp"
+                    android:paddingBottom="8dp" />
             </ScrollView>
 
             <View
@@ -286,7 +286,7 @@
         <LinearLayout
             android:id="@+id/drawer_quick_actions"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
+            android:layout_height="52dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="18dp"
@@ -296,11 +296,11 @@
                 android:id="@+id/drawer_settings_button"
                 style="@style/Widget.SagerNet.DrawerSettingsButton"
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:minWidth="116dp"
+                android:layout_height="40dp"
+                android:minWidth="112dp"
                 android:contentDescription="@string/settings"
                 android:text="@string/settings"
-                app:icon="@drawable/ic_action_settings"
+                app:icon="@drawable/ic_outline_settings_24"
                 app:iconGravity="textStart"
                 app:iconPadding="8dp" />
 
@@ -328,13 +328,13 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@drawable/bg_drawer_panel"
+        android:background="?attr/colorSurface"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/drawer_brand_black"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="48dp"
             android:gravity="center_vertical"
             android:paddingStart="22dp"
             android:paddingEnd="22dp"
@@ -370,8 +370,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingTop="6dp"
-                    android:paddingBottom="12dp" />
+                    android:paddingTop="4dp"
+                    android:paddingBottom="8dp" />
             </ScrollView>
 
             <View
@@ -396,7 +396,7 @@
         <LinearLayout
             android:id="@+id/drawer_quick_actions_black"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
+            android:layout_height="52dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="18dp"
@@ -406,11 +406,11 @@
                 android:id="@+id/drawer_settings_button_black"
                 style="@style/Widget.SagerNet.DrawerSettingsButton"
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:minWidth="116dp"
+                android:layout_height="40dp"
+                android:minWidth="112dp"
                 android:contentDescription="@string/settings"
                 android:text="@string/settings"
-                app:icon="@drawable/ic_action_settings"
+                app:icon="@drawable/ic_outline_settings_24"
                 app:iconGravity="textStart"
                 app:iconPadding="8dp" />
 
