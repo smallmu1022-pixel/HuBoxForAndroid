@@ -218,15 +218,17 @@ class StatsBar @JvmOverloads constructor(
             val container = findViewById<View>(R.id.stats_content_container)
             container?.setOnClickListener(onCardClick)
             container?.setOnLongClickListener(onCardLongClick)
-            statusIpText.setOnClickListener(onCardClick)
+            statusIpText.setOnClickListener { onIpDetailClicked() }
             statusIpText.setOnLongClickListener(onCardLongClick)
-            statusText.setOnClickListener(onCardClick)
+            statusText.setOnClickListener { retestLatencyInPlace() }
             statusText.setOnLongClickListener(onCardLongClick)
-            statusTitleText.setOnClickListener(onCardClick)
+            statusTitleText.setOnClickListener { retestLatencyInPlace() }
+            findViewById<View>(R.id.status_area)?.setOnClickListener { retestLatencyInPlace() }
             statusTitleText.setOnLongClickListener(onCardLongClick)
             txText.setOnClickListener(onCardClick)
             txText.setOnLongClickListener(onCardLongClick)
             rxText.setOnClickListener(onCardClick)
+            
             rxText.setOnLongClickListener(onCardLongClick)
             btnIpDetail?.setOnClickListener(onCardClick)
             btnIpDetail?.setOnLongClickListener(onCardLongClick)
