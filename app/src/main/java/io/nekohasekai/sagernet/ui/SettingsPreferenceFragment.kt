@@ -7,7 +7,6 @@ import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
-import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
@@ -32,11 +31,6 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         preferenceManager.preferenceDataStore = DataStore.configurationStore
         DataStore.initGlobal()
         setPreferencesFromResource(R.xml.global_preferences, rootKey)
-        preferenceScreen.addPreference(Preference(requireContext()).apply {
-            isSelectable = false
-            isEnabled = false
-            title = "HuBox v${BuildConfig.VERSION_NAME} · ${BuildConfig.APPLICATION_ID}"
-        })
         tintPreferenceIcons(preferenceScreen, requireContext().getColorAttr(android.R.attr.textColorPrimary))
     }
 
