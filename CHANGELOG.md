@@ -1,5 +1,10 @@
 # HuBox for Android 更新日志 (Changelog)
 
+# HuBox for Android v1.0.4
+
+### 【说明】
+1. BUG修复
+
 # HuBox for Android v1.0.3
 
 ### 【说明】
