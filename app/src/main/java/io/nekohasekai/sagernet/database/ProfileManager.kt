@@ -211,6 +211,22 @@ object ProfileManager {
                     outbound = -2
                 )
             )
+            createRule(
+                RuleEntity(
+                    name = app.getString(R.string.route_opt_block_malware),
+                    domains = "geosite:malware",
+                    outbound = -2,
+                    enabled = true
+                )
+            )
+            createRule(
+                RuleEntity(
+                    name = app.getString(R.string.route_opt_block_phishing),
+                    domains = "geosite:phishing",
+                    outbound = -2,
+                    enabled = true
+                )
+            )
             val fuckedCountry = mutableListOf("cn:中国")
             if (Locale.getDefault().country != Locale.CHINA.country) {
                 // 非中文用户
@@ -321,6 +337,29 @@ object ProfileManager {
                         needReload = true
                     }
                 }
+            }
+            // 为已有用户补齐恶意软件/钓鱼拦截默认规则
+            if (rules.none { it.domains.contains("geosite:malware") }) {
+                createRule(
+                    RuleEntity(
+                        name = app.getString(R.string.route_opt_block_malware),
+                        domains = "geosite:malware",
+                        outbound = -2,
+                        enabled = true
+                    )
+                )
+                needReload = true
+            }
+            if (rules.none { it.domains.contains("geosite:phishing") }) {
+                createRule(
+                    RuleEntity(
+                        name = app.getString(R.string.route_opt_block_phishing),
+                        domains = "geosite:phishing",
+                        outbound = -2,
+                        enabled = true
+                    )
+                )
+                needReload = true
             }
             if (needReload) {
                 rules = SagerDatabase.rulesDao.allRules()
