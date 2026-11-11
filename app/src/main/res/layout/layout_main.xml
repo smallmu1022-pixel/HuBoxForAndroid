@@ -37,13 +37,13 @@
             android:id="@+id/fab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:elevation="0dp"
+            android:elevation="6dp"
             android:nextFocusDown="@+id/stats"
-            app:backgroundTint="@android:color/transparent"
+            app:backgroundTint="?attr/fabColorBackground"
             app:layout_anchor="@id/stats"
             app:layout_anchorGravity="top|center_horizontal"
-            app:maxImageSize="32dp"
-            app:pressedTranslationZ="0dp"
+            app:maxImageSize="24dp"
+            app:pressedTranslationZ="6dp"
             app:srcCompat="@drawable/ic_service_plane_outline"/>
 
         <io.nekohasekai.sagernet.widget.StatsBar
