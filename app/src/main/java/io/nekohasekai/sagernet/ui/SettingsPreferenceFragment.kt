@@ -7,10 +7,12 @@ import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
+import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
 import io.nekohasekai.sagernet.ktx.dp2px
+import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.utils.Theme
 import moe.matsuri.nb4a.ui.TelegramGroupedPreferenceDecoration
 
@@ -30,12 +32,17 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         preferenceManager.preferenceDataStore = DataStore.configurationStore
         DataStore.initGlobal()
         setPreferencesFromResource(R.xml.global_preferences, rootKey)
-        tintPreferenceIcons(preferenceScreen, Theme.getPrimaryColor(requireContext()))
+        preferenceScreen.addPreference(Preference(requireContext()).apply {
+            isSelectable = false
+            isEnabled = false
+            title = "HuBox v${BuildConfig.VERSION_NAME} · ${BuildConfig.APPLICATION_ID}"
+        })
+        tintPreferenceIcons(preferenceScreen, requireContext().getColorAttr(android.R.attr.textColorPrimary))
     }
 
     override fun onResume() {
         super.onResume()
-        tintPreferenceIcons(preferenceScreen, Theme.getPrimaryColor(requireContext()))
+        tintPreferenceIcons(preferenceScreen, requireContext().getColorAttr(android.R.attr.textColorPrimary))
     }
 
     private fun tintPreferenceIcons(group: PreferenceGroup, color: Int) {
