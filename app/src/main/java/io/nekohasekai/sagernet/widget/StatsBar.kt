@@ -227,8 +227,7 @@ class StatsBar @JvmOverloads constructor(
             statusTitleText.setOnLongClickListener(onCardLongClick)
             txText.setOnClickListener(onCardClick)
             txText.setOnLongClickListener(onCardLongClick)
-            rxText.setOnClickListener(onCardClick)
-            
+            rxText.setOnClickListener(onCardClick)            
             rxText.setOnLongClickListener(onCardLongClick)
             btnIpDetail?.setOnClickListener(onCardClick)
             btnIpDetail?.setOnLongClickListener(onCardLongClick)
