@@ -47,7 +47,7 @@
         <item name="primaryOrTextSecondary">?colorPrimary</item>
         <item name="primaryOrTextPrimary">?colorPrimary</item>
 
-        <item name="fabColorBackground">?colorPrimary</item>
+        <item name="fabColorBackground">?attr/colorSurface</item>
         <item name="selectedColorPrimary">?colorPrimary</item>
 
         <!-- 沉浸式 Top App Bar 主题与样式 -->
@@ -144,7 +144,7 @@
         <item name="primaryOrTextSecondary">?colorPrimary</item>
         <item name="primaryOrTextPrimary">?colorPrimary</item>
 
-        <item name="fabColorBackground">?colorPrimary</item>
+        <item name="fabColorBackground">?attr/colorSurface</item>
         <item name="selectedColorPrimary">?colorPrimary</item>
         <item name="actionBarTheme">@style/ThemeOverlay.SagerNet.Toolbar</item>
         <item name="appBarLayoutStyle">@style/Widget.SagerNet.AppBarLayout</item>
@@ -911,7 +911,7 @@
         <item name="tabIndicatorColor">@color/color_white_theme_tab_selected</item>
         <item name="tabRippleColor">@color/color_white_theme_ripple</item>
         <item name="whiteOrTextPrimary">@color/color_white_theme_text_primary</item>
-        <item name="fabColorBackground">@color/color_white_theme_accent</item>
+        <item name="fabColorBackground">@color/white</item>
         <item name="selectedColorPrimary">@color/color_white_theme_accent</item>
         <item name="itemShapeFillColor">@color/color_white_theme_material_300</item>
         <item name="accentOrTextSecondary">?android:textColorSecondary</item>
@@ -943,7 +943,7 @@
         <item name="tabIndicatorColor">@color/color_light_gray_tab_selected</item>
         <item name="tabRippleColor">@color/color_light_gray_ripple</item>
         <item name="whiteOrTextPrimary">@color/color_light_gray_text_primary</item>
-        <item name="fabColorBackground">@color/color_light_gray_primary</item>
+        <item name="fabColorBackground">?attr/colorSurface</item>
         <item name="selectedColorPrimary">@color/color_light_gray_primary</item>
         <item name="itemShapeFillColor">@color/color_light_gray_material_300</item>
         <item name="accentOrTextSecondary">?android:textColorSecondary</item>
@@ -993,7 +993,7 @@
         <item name="colorOnSurface">@color/color_white_theme_text_primary</item>
         <item name="android:textColorPrimary">@color/color_white_theme_text_primary</item>
         <item name="android:textColorSecondary">@color/color_white_theme_text_secondary</item>
-        <item name="fabColorBackground">@color/color_white_theme_accent</item>
+        <item name="fabColorBackground">@color/white</item>
         <item name="selectedColorPrimary">@color/color_white_theme_accent</item>
     </style>
 
@@ -1010,7 +1010,7 @@
         <item name="colorOnSurface">@color/color_light_gray_text_primary</item>
         <item name="android:textColorPrimary">@color/color_light_gray_text_primary</item>
         <item name="android:textColorSecondary">@color/color_light_gray_text_secondary</item>
-        <item name="fabColorBackground">@color/color_light_gray_primary</item>
+        <item name="fabColorBackground">?attr/colorSurface</item>
         <item name="selectedColorPrimary">@color/color_light_gray_primary</item>
     </style>
 
