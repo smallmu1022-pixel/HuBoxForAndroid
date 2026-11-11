@@ -7,7 +7,7 @@
         app:icon="@drawable/ic_line_eye_24"
         app:key="screenUI"
         app:summary="@string/settings_ui_summary"
-        app:title="@string/settings_title_ui"
+        app:title="@string/ui_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
     <Preference
@@ -15,7 +15,7 @@
         app:icon="@drawable/solar_lock_keyhole_minimalistic_linear"
         app:key="screenVPN"
         app:summary="@string/settings_vpn_summary"
-        app:title="@string/settings_title_vpn"
+        app:title="@string/vpn_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
     <Preference
@@ -23,7 +23,7 @@
         app:icon="@drawable/solar_slider_minimalistic_horizontal_linear"
         app:key="screenMode"
         app:summary="@string/settings_mode_summary"
-        app:title="@string/settings_title_mode"
+        app:title="@string/mode_and_inbound_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
     <Preference
@@ -31,7 +31,7 @@
         app:icon="@drawable/solar_cpu_linear"
         app:key="screenCore"
         app:summary="@string/settings_core_summary"
-        app:title="@string/settings_title_core"
+        app:title="@string/core_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
     <Preference
@@ -39,7 +39,7 @@
         app:icon="@drawable/solar_global_linear"
         app:key="screenDNS"
         app:summary="@string/settings_dns_summary"
-        app:title="@string/settings_title_dns"
+        app:title="@string/dns_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
     <Preference
@@ -47,7 +47,7 @@
         app:icon="@drawable/solar_scissors_square_linear"
         app:key="screenFragment"
         app:summary="@string/settings_fragment_summary"
-        app:title="@string/settings_title_fragment"
+        app:title="@string/fragment_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
     <Preference
@@ -55,7 +55,7 @@
         app:icon="@drawable/solar_chart_2_linear"
         app:key="screenObservatory"
         app:summary="@string/settings_observatory_summary"
-        app:title="@string/settings_title_observatory"
+        app:title="@string/observatory_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
     <Preference
@@ -63,7 +63,7 @@
         app:icon="@drawable/ic_line_wrench_24"
         app:key="screenAdvanced"
         app:summary="@string/settings_advanced_summary"
-        app:title="@string/settings_title_advanced"
+        app:title="@string/advanced_settings"
         app:widgetLayout="@layout/preference_widget_chevron" />
 
 </PreferenceScreen>
