@@ -41,7 +41,7 @@ open class ToolbarFragment : Fragment {
                 toolbar.setContentInsetsRelative(0, dp2px(4))
                 toolbar.title = null
                 toolbar.setBackgroundColor(Color.TRANSPARENT)
-                customTitle.text = getString(R.string.app_name)
+                customTitle.text = ""
                 customTitle.visibility = View.VISIBLE
                 customTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
                 for (i in 0 until toolbar.childCount) {
