@@ -106,8 +106,27 @@ class MainActivity : ThemedActivity(),
             binding.fabProgress.scaleX = bottomFactor
             binding.fabProgress.scaleY = bottomFactor
         }
-        // 纸飞机不要任何背景色：背景透明、去掉强制白色图标 tint，飞机用自身描边色
-        binding.fab.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+        val isNight = Theme.usingNightMode(this)
+        val fabBgColor = when {
+            Theme.isBlackTheme(this) -> Color.BLACK
+            Theme.isWhiteTheme(this) -> Color.parseColor("#212121")
+            Theme.isLightGrayTheme(this) -> Color.parseColor("#1F2937")
+            else -> {
+                val bg = getColorAttr(R.attr.fabColorBackground)
+                if (isNight && ColorUtils.calculateLuminance(bg) > 0.75) {
+                    val primary = getColorAttr(R.attr.colorPrimary)
+                    if (ColorUtils.calculateLuminance(primary) > 0.75) {
+                        Color.parseColor("#2C2C2E")
+                    } else {
+                        primary
+                    }
+                } else {
+                    bg
+                }
+            }
+        }
+        binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
+        binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
         val drawerRoot: View
         if (themeResId !in intArrayOf(
                 R.style.Theme_SagerNet_Black
