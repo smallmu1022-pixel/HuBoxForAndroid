@@ -30,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ellipsize="end"
-                android:paddingStart="12dp"
+                android:paddingStart="8dp"
                 android:paddingEnd="6dp"
                 android:paddingVertical="2dp"
                 android:singleLine="true"
@@ -47,10 +47,10 @@
                 android:ellipsize="end"
                 android:maxWidth="160dp"
                 android:paddingStart="4dp"
-                android:paddingEnd="12dp"
+                android:paddingEnd="8dp"
                 android:singleLine="true"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="?android:attr/textColorSecondary"
+                android:textColor="?android:attr/textColorPrimary"
                 tools:text="286 ms" />
 
             <androidx.appcompat.widget.AppCompatImageView
