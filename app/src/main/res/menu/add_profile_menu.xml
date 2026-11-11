@@ -89,13 +89,13 @@
 
     <item
         android:id="@+id/action_connection_url_test"
-        android:icon="@drawable/ic_electric_bolt_24"
+        android:icon="@drawable/ic_outline_flash_on_24"
         android:title="@string/connection_test_url_test"
         app:showAsAction="always" />
 
     <item
         android:id="@+id/action_locate_active_profile"
-        android:icon="@drawable/ic_action_my_location"
+        android:icon="@drawable/ic_outline_my_location_20"
         android:title="@string/locate_active_profile"
         app:showAsAction="always" />
 
@@ -108,7 +108,7 @@
 
     <item
         android:id="@+id/action_misc"
-        android:icon="@drawable/ic_baseline_more_vert_24"
+        android:icon="@drawable/ic_baseline_more_vert_20"
         android:title=""
         app:showAsAction="always">
         <menu>
