@@ -437,7 +437,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     activity?.intent?.getBooleanExtra(ProfileSelectActivity.EXTRA_MULTI_SELECT, false) == true
                 getString(if (isMulti) R.string.select_multi_profile else R.string.select_profile)
             }
-            else -> getString(R.string.app_name)
+            else -> ""
         }
     }
 
@@ -1018,9 +1018,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             styleGroupTabLayout()
         }
 
-        toolbar.setOnClickListener {
-            locateActiveProfile()
-        }
 
         DataStore.profileCacheStore.registerChangeListener(this)
         DataStore.configurationStore.registerChangeListener(this)
@@ -1331,7 +1328,7 @@ class ConfigurationFragment @JvmOverloads constructor(
     private fun restoreToolbarFromReorderMode() {
         if (!isToolbarInitialized) return
         val customTitle = view?.findViewById<TextView>(R.id.toolbar_title_view)
-        customTitle?.text = getString(R.string.app_name)
+        customTitle?.text = ""
 
         toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
         val iconColor = resolveTopBarIconTint(requireContext())
