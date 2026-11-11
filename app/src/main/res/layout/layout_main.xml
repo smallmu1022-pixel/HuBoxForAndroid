@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:max="1"
             android:visibility="invisible"
-            app:indicatorColor="?primaryOrTextSecondary"
+            app:indicatorColor="?android:attr/textColorSecondary"
             app:layout_anchor="@+id/fab"
             app:layout_anchorGravity="center"
             app:layout_behavior="io.nekohasekai.sagernet.widget.FabProgressBehavior"
@@ -44,7 +44,7 @@
             app:layout_anchorGravity="top|center_horizontal"
             app:maxImageSize="24dp"
             app:pressedTranslationZ="6dp"
-            app:srcCompat="@drawable/ic_service_idle" />
+            app:srcCompat="@drawable/ic_service_plane_outline"/>
 
         <io.nekohasekai.sagernet.widget.StatsBar
             android:id="@+id/stats"
