@@ -4433,13 +4433,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                         if (selected) Color.parseColor("#4CAF50") else ctx.getColour(R.color.card_stroke)
                 } else {
                     selectedIndicator.isVisible = selected
-                    card.strokeWidth = ctx.resources.getDimensionPixelSize(
-                        if (selected) R.dimen.card_stroke_width_selected
-                        else R.dimen.card_stroke_width
-        )
-                    card.strokeColor =
-                        if (selected) Color.parseColor("#4CAF50") else ctx.getColour(R.color.card_stroke)
-                    card.cardElevation =
+                    card.strokeWidth = 0
+                        card.cardElevation =
                         ctx.resources.getDimension(R.dimen.profile_card_elevation_classic)
                 }
             }
