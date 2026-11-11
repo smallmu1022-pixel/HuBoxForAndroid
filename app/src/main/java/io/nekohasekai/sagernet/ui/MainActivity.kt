@@ -130,7 +130,7 @@ class MainActivity : ThemedActivity(),
             binding.drawerLayout.removeView(binding.navView)
         }
         val drawerFactor = UiScaleManager.drawerFactor()
-        val baseDrawerWidthDp = 265f
+        val baseDrawerWidthDp = 260f
         val drawerWidth = minOf(
             (baseDrawerWidthDp * resources.displayMetrics.density * drawerFactor.coerceIn(0.8f, 1.15f)).toInt(),
             resources.displayMetrics.widthPixels - (72 * resources.displayMetrics.density).toInt(),
