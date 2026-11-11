@@ -416,7 +416,13 @@ fun buildConfig(
     val isSmartRouting = !forTest && DataStore.smartMode && !DataStore.globalMode
     val extraRules = when {
         forTest -> listOf()
-        isSmartRouting -> io.nekohasekai.sagernet.route.SmartRouteRules.buildSmartRules(DataStore.smartRouteCountry)
+        isSmartRouting -> {
+            // 智能分流开启时路由规则也生效：拦截类规则放最前面，再接智能生成的规则，最后是其余路由规则
+            val dbRules = SagerDatabase.rulesDao.enabledRules()
+            val blockRules = dbRules.filter { it.outbound == -2L }
+            val otherRules = dbRules.filter { it.outbound != -2L }
+            blockRules + io.nekohasekai.sagernet.route.SmartRouteRules.buildSmartRules(DataStore.smartRouteCountry) + otherRules
+        }
         else -> SagerDatabase.rulesDao.enabledRules()
     }
     val extraProxies =
