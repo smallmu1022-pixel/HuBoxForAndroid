@@ -86,47 +86,9 @@ class MainActivity : ThemedActivity(),
 
     lateinit var binding: LayoutMainBinding
     lateinit var navigation: NavigationView
-    private lateinit var drawerSettingsButton: View
-    private lateinit var drawerAboutButton: View
-    private lateinit var drawerMenuItems: LinearLayout
-    private lateinit var drawerMenuScroll: ScrollView
-    private var currentMainFragment: ToolbarFragment? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        MessageStore.setCurrentActivity(this)
-        val animateInitialControls = savedInstanceState == null
-
-        binding = LayoutMainBinding.inflate(layoutInflater)
-        binding.fab.initProgress(binding.fabProgress)
-        val bottomFactor = UiScaleManager.bottomBarFactor()
-        if (bottomFactor != 1.0f) {
-            binding.fab.scaleX = bottomFactor
-            binding.fab.scaleY = bottomFactor
-            binding.fabProgress.scaleX = bottomFactor
-            binding.fabProgress.scaleY = bottomFactor
         }
-        val isNight = Theme.usingNightMode(this)
-        val fabBgColor = when {
-            Theme.isBlackTheme(this) -> Color.BLACK
-            Theme.isWhiteTheme(this) -> Color.parseColor("#212121")
-            Theme.isLightGrayTheme(this) -> Color.parseColor("#1F2937")
-            else -> {
-                val bg = getColorAttr(R.attr.fabColorBackground)
-                if (isNight && ColorUtils.calculateLuminance(bg) > 0.75) {
-                    val primary = getColorAttr(R.attr.colorPrimary)
-                    if (ColorUtils.calculateLuminance(primary) > 0.75) {
-                        Color.parseColor("#2C2C2E")
-                    } else {
-                        primary
-                    }
-                } else {
-                    bg
-                }
-            }
-        }
-        binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
-        binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
+        // 纸飞机不要任何背景色：背景透明、去掉强制白色图标 tint，飞机用自身描边色
+        binding.fab.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
         val drawerRoot: View
         if (themeResId !in intArrayOf(
                 R.style.Theme_SagerNet_Black
