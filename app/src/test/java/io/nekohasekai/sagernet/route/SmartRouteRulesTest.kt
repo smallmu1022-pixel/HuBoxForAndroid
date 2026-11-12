@@ -154,10 +154,11 @@ class SmartRouteRulesTest {
             bundledForeign = emptySet(),
             proxyAppsEnabled = true,
             bypassMode = false,
-            individualPackages = setOf("tv.danmaku.bili")
+            individualPackages = setOf("tv.danmaku.bili", "com.android.chrome")
         )
         assertFalse(domesticProxyMode.contains("tv.danmaku.bili"))
         assertTrue(foreignProxyMode.contains("tv.danmaku.bili"))
+        assertTrue(foreignProxyMode.contains("com.android.chrome"))
 
         // 当分应用代理开启且为「绕过选中应用 (bypassMode)」时，手动勾选绕过的应用应从代理名单移除并归入直连
         val (domesticBypassMode, foreignBypassMode) = SmartRouteRules.classifyApps(

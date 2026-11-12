@@ -462,10 +462,10 @@ object SmartRouteRules {
                 // 仅代理选中应用模式：用户显式勾选的应用优先走代理，从本国直连名单中移除
                 for (pkg in individualPackages) {
                     if (pkg in SYSTEM_EXCLUDED_PACKAGES) continue
+                    // An explicit per-app selection overrides automatic browser/hybrid
+                    // exclusion; only unselected browsers are left to domain/IP routing.
                     resolvedDomestic.remove(pkg)
-                    if (pkg !in BROWSER_AND_HYBRID_PACKAGES) {
-                        resolvedForeign.add(pkg)
-                    }
+                    resolvedForeign.add(pkg)
                 }
             } else {
                 // 绕过选中应用模式：用户显式勾选绕过的应用从海外代理名单中移除并归入直连
