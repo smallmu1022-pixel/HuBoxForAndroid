@@ -413,7 +413,7 @@ class TrafficLooper
 
             // Background low-power battery optimization:
             // Avoid periodic forced GC which causes CPU page faults and prevents deep sleep.
-            // When screen is off, suspend polling up to 5 minutes to let SoC enter Doze/C-states;
+            // When screen is off, suspend non-critical traffic-stat polling for up to 10 minutes;
             // when screen turns on, triggerWakeup() wakes this coroutine immediately.
             val nextDelay = when {
                 // Keep foreground statistics responsive; only background polling is throttled.
