@@ -54,6 +54,10 @@ class SmartRouteRulesTest {
     @Test
     fun buildSmartRulesAdaptsToSelectedCountry() {
         val cnRules = SmartRouteRules.buildSmartRules("cn")
+        val googlePlayRule = cnRules.first { it.name == "Smart-GooglePlay" }
+        assertTrue(googlePlayRule.domains.contains("domain:google.cn"))
+        assertTrue(googlePlayRule.domains.contains("domain:gvt5.com"))
+        assertTrue(googlePlayRule.domains.contains("domain:ggpht.com"))
         assertTrue(cnRules.any { it.outbound == -1L && it.domains.contains("geosite:cn") && it.domains.contains("domain:cn") })
         assertTrue(cnRules.any { it.outbound == -1L && it.ip.contains("geoip:cn") })
 

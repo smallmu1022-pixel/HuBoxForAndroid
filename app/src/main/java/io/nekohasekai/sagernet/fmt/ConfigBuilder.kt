@@ -1945,22 +1945,25 @@ fun buildConfig(
                 "com.google.android.gsf"
             )
 
-            dns.rules.add(DNSRule_DefaultOptions().apply {
-                domain = googlePlayDomains
-                server = "dns-remote"
-            })
-            dns.rules.add(DNSRule_DefaultOptions().apply {
-                domain_suffix = googlePlayDomainSuffixes
-                server = "dns-remote"
-            })
-
-            // 所属国家/地区核心应用与常用域名后缀静态直连保底名单
+            // In smart-routing mode, the generated SmartRouteRules and user DNS rules carry
+            // these fallbacks in the same order as route rules. Keep legacy built-ins only
+            // outside smart mode so they cannot preempt explicit user routing choices.
             val domesticCoreDomainSuffixes = io.nekohasekai.sagernet.route.SmartRouteRules.domesticCoreDomainSuffixes(DataStore.smartRouteCountry)
-            if (!DataStore.globalMode) {
+            if (!isSmartRouting) {
                 dns.rules.add(DNSRule_DefaultOptions().apply {
-                    domain_suffix = domesticCoreDomainSuffixes
-                    server = "dns-direct"
+                    domain = googlePlayDomains
+                    server = "dns-remote"
                 })
+                dns.rules.add(DNSRule_DefaultOptions().apply {
+                    domain_suffix = googlePlayDomainSuffixes
+                    server = "dns-remote"
+                })
+                if (!DataStore.globalMode) {
+                    dns.rules.add(DNSRule_DefaultOptions().apply {
+                        domain_suffix = domesticCoreDomainSuffixes
+                        server = "dns-direct"
+                    })
+                }
             }
 
             // 提取 directDNS 与 remoteDns 的域名及 IP/CIDR 目标
@@ -1991,29 +1994,30 @@ fun buildConfig(
                 action = "reject"
             })
 
-            // Google Play 商店与全套下载 CDN 专线路由（必须置于 domesticCoreDomainSuffixes 直连规则之前）：
-            // 解决 Google Play 下载卡在“等待中...”的核心问题：
-            // 确保 Google Play APK 下载（*.gvt1.com 等 CDN）以及应用商店 API (googleapis.cn) 强制走代理，
-            // 绝不被国内 .cn 后缀直连规则误伤导致连接超时断流。
-            topRouteRules.add(Rule_DefaultOptions().apply {
-                domain = googlePlayDomains
-                outbound = mainProxyTag
-            })
-            topRouteRules.add(Rule_DefaultOptions().apply {
-                domain_suffix = googlePlayDomainSuffixes
-                outbound = mainProxyTag
-            })
-            topRouteRules.add(Rule_DefaultOptions().apply {
-                package_name = googlePlayPackages
-                outbound = mainProxyTag
-            })
-
-            // 本国主流服务直连保底规则（非全局模式下保障本国核心服务绝不误入海外代理）
-            if (!DataStore.globalMode) {
+            // Smart routing already appends Google Play and domestic-domain fallback
+            // rules after explicit user rules. Do not duplicate them at the top of the route
+            // list, where they would override the user's selected outbound.
+            if (!isSmartRouting) {
                 topRouteRules.add(Rule_DefaultOptions().apply {
-                    domain_suffix = domesticCoreDomainSuffixes
-                    outbound = TAG_DIRECT
+                    domain = googlePlayDomains
+                    outbound = mainProxyTag
                 })
+                topRouteRules.add(Rule_DefaultOptions().apply {
+                    domain_suffix = googlePlayDomainSuffixes
+                    outbound = mainProxyTag
+                })
+                topRouteRules.add(Rule_DefaultOptions().apply {
+                    package_name = googlePlayPackages
+                    outbound = mainProxyTag
+                })
+
+                // Legacy domestic fallback outside smart-routing mode.
+                if (!DataStore.globalMode) {
+                    topRouteRules.add(Rule_DefaultOptions().apply {
+                        domain_suffix = domesticCoreDomainSuffixes
+                        outbound = TAG_DIRECT
+                    })
+                }
             }
 
             // Telegram 官方数据中心（DC 1~5）及核心媒体 CDN 纯 IP 段
