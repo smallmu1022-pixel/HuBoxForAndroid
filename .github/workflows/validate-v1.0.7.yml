@@ -1,0 +1,92 @@
+name: HuBox v1.0.7 Validation
+
+on:
+  push:
+    branches:
+      - hubox-1.0.7-battery-hardening
+  pull_request:
+    branches:
+      - hubox-1.0.7-battery-hardening
+
+permissions:
+  contents: read
+
+jobs:
+  libcore:
+    name: Build and verify LibCore
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: sdkmanager "ndk;25.0.8775105"
+      - name: Build native LibCore
+        run: ./run lib core
+      - name: Verify LibCore AAR
+        run: |
+          test -s app/libs/libcore.aar
+          unzip -p app/libs/libcore.aar classes.jar > /tmp/libcore-classes.jar
+          unzip -l /tmp/libcore-classes.jar | grep -q 'libcore/Libcore.class'
+          unzip -l /tmp/libcore-classes.jar | grep -q 'go/Seq.class'
+      - name: Upload LibCore AAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: libcore-aar
+          path: app/libs/libcore.aar
+          if-no-files-found: error
+          retention-days: 1
+
+  android-validation:
+    name: Kotlin tests, lint and debug APK
+    runs-on: ubuntu-latest
+    needs: libcore
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: sdkmanager "ndk;25.0.8775105"
+      - name: Download LibCore AAR
+        uses: actions/download-artifact@v4
+        with:
+          name: libcore-aar
+          path: app/libs
+      - name: Prepare local properties
+        run: |
+          echo "sdk.dir=${ANDROID_HOME}" > local.properties
+          echo "ndk.dir=${ANDROID_HOME}/ndk/25.0.8775105" >> local.properties
+      - name: Prepare build assets
+        env:
+          BUILD_PLUGIN: none
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+        run: ./run init action gradle
+      - name: Run unit tests, lint and assemble debug APK
+        env:
+          BUILD_PLUGIN: none
+        run: |
+          ./gradlew --no-daemon testPreviewDebugUnitTest lintPreviewDebug assemblePreviewDebug
+      - name: Verify APK output
+        run: |
+          APK=$(find app/build/outputs/apk -name '*.apk' -type f | head -n 1)
+          test -n "$APK"
+          test -s "$APK"
+          echo "Validated APK: $APK"
+      - name: Upload validation APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hubox-v1.0.7-validation-apk
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 7
