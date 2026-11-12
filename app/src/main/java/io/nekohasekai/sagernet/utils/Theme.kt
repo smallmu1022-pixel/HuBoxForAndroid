@@ -41,7 +41,7 @@ object Theme {
     const val LIGHT_GRAY = 24
     const val CUSTOM = 99
 
-    private fun defaultTheme() = LIGHT_GRAY
+    private fun defaultTheme() = BLUE
 
     fun isValidTheme(themeId: Int): Boolean {
         return themeId in MONET..LIGHT_GRAY || themeId == CUSTOM
