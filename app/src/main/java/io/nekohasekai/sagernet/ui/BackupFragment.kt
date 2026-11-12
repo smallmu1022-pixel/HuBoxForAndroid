@@ -594,29 +594,27 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         }
 
         val jsonContent = out.toStringPretty()
+        val jsonBytes = jsonContent.toByteArray(Charsets.UTF_8)
+        require(jsonBytes.size <= MAX_BACKUP_BYTES) {
+            "Backup exceeds the 64 MB size limit"
+        }
         return if (isWebDAVBackup) {
             ByteArrayOutputStream().use { bos ->
                 ZipOutputStream(bos).use { zos ->
                     zos.setLevel(Deflater.BEST_COMPRESSION)
-                    
                     val entry = ZipEntry("HuBox_backup.json").apply {
                         method = ZipEntry.DEFLATED
                     }
-                    
-                    // 写入数据
                     zos.putNextEntry(entry)
-                    val bytes = jsonContent.toByteArray(Charsets.UTF_8)
-                    zos.write(bytes)
+                    zos.write(jsonBytes)
                     zos.closeEntry()
-                    
-                    // 确保所有数据都被写入和压缩
                     zos.finish()
                 }
                 bos.toByteArray()
             }
         } else {
-            // 本地导出和分享功能使用 JSON 格式
-            jsonContent.toByteArray()
+            // Local export and sharing use JSON; keep the same limit as restore.
+            jsonBytes
         }
     }
 

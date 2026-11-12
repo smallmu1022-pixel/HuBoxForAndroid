@@ -380,7 +380,8 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
     }
 
     private fun buildEffectiveDashboardUrl(url: String): String {
-        val normalized = runCatching { DashboardManager.normalizeUrl(url) }.getOrDefault(url)
+        val normalized = runCatching { DashboardManager.normalizeUrl(url) }
+            .getOrElse { DashboardManager.PRESET_YACD_URL }
         val parsed = normalized.toHttpUrlOrNull()
         return when {
             parsed?.scheme == "https" && parsed.host.equals("board.zash.run.place", ignoreCase = true) &&

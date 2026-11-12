@@ -27,6 +27,7 @@ class TrafficLooper
 
     private var job: Job? = null
     private var lastSpeedSnapshot: SpeedDisplayData? = null
+    @Volatile
     private var wakeupSignal: CompletableDeferred<Unit>? = null
 
     fun triggerWakeup() {
@@ -219,8 +220,6 @@ class TrafficLooper
 
         // for display
         val itemBypass = TrafficUpdater.TrafficLooperData(tag = TAG_BYPASS)
-        var idleSeconds = 0
-        var lastDelayMs = 3000L
         var lastForegroundUI = false
         var lastFlushTime = System.currentTimeMillis()
 
@@ -238,7 +237,12 @@ class TrafficLooper
                 delay(if (isForegroundUI) baseDelayMs else 3000L)
                 continue
             }
-            if (!proxy.isInitialized()) continue
+            if (!proxy.isInitialized()) {
+                // The service can start its traffic loop before the core finishes initializing.
+                // Never spin without suspension while initialization is pending.
+                delay(if (isForegroundUI) baseDelayMs else 3000L)
+                continue
+            }
 
             val snapshot = withStateLock {
                 val currentConfig = proxy.safeConfig ?: return@withStateLock null
@@ -434,14 +438,14 @@ class TrafficLooper
                     else -> 15000L
                 }
             }
-            lastDelayMs = nextDelay
-            withTimeoutOrNull(nextDelay) {
-                val deferred = CompletableDeferred<Unit>().also { wakeupSignal = it }
-                try {
-                    deferred.await()
-                } finally {
-                    wakeupSignal = null
-                }
+            val deferred = CompletableDeferred<Unit>()
+            wakeupSignal = deferred
+            try {
+                // Close the race where SCREEN_ON arrives just before the deferred is installed.
+                if (!isInteractive && SagerNet.power.isInteractive) deferred.complete(Unit)
+                withTimeoutOrNull(nextDelay) { deferred.await() }
+            } finally {
+                if (wakeupSignal === deferred) wakeupSignal = null
             }
         }
     }

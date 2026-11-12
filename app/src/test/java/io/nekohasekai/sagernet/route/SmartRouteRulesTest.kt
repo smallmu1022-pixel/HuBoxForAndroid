@@ -127,6 +127,16 @@ class SmartRouteRulesTest {
             bundledForeign = emptySet()
         )
         assertFalse(domesticRu.contains("ru.unrelated.foreignapp"))
+
+        for (country in listOf("ir", "tr", "id", "in", "vn", "br")) {
+            val packageName = "$country.unrelated.foreignapp"
+            val (domestic, _) = SmartRouteRules.classifyApps(
+                country = country,
+                installedPackages = setOf(packageName),
+                bundledForeign = emptySet()
+            )
+            assertFalse("$country package namespace must not imply domestic origin", domestic.contains(packageName))
+        }
     }
 
     @Test
