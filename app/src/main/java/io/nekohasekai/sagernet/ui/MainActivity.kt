@@ -870,8 +870,8 @@ class MainActivity : ThemedActivity(),
             ColorUtils.calculateLuminance(themeColor) > 0.50 -> ColorUtils.blendARGB(themeColor, Color.BLACK, 0.35f)
             else -> themeColor
         }
-        // HuBox V1.0.1: selected proxy-mode button and smart-routing pill are highlight green
-        val modeAccent = Color.parseColor("#4CAF50")
+        // Selected proxy-mode controls follow the active HuBox theme accent.
+        val modeAccent = themeColor
         val onSurfaceColor = getColorAttr(R.attr.colorOnSurface)
         val onSurfaceVariantColor = getColorAttr(R.attr.colorOnSurfaceVariant)
 
