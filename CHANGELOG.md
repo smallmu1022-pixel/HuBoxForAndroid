@@ -1,5 +1,11 @@
 # HuBox for Android 更新日志 (Changelog)
 
+# HuBox for Android v1.0.6
+
+### 【说明】
+1. 备份导出、分享及 WebDAV 备份文件统一使用 HuBox 名称。
+2. 保留旧版 OwnBox 备份文件的恢复兼容性。
+
 # HuBox for Android v1.0.5
 
 ### 【说明】
