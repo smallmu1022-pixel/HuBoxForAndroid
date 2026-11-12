@@ -461,7 +461,8 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                     // ZIP 文件处理
                     ZipInputStream(content.inputStream()).use { zis ->
                         zis.nextEntry?.let { entry ->
-                            if (entry.name.endsWith(".json")) {
+                            if (entry.name.endsWith(".json", ignoreCase = true) &&
+                                !entry.name.contains('/') && !entry.name.contains('\\')) {
                                 readBounded(zis).toString(Charsets.UTF_8)
                             } else {
                                 throw Exception("Invalid backup file format")
@@ -740,8 +741,9 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 if (fileName.endsWith(".zip")) {
                     ZipInputStream(BufferedInputStream(input)).use { zis ->
                         zis.nextEntry?.let { entry ->
-                            if (entry.name.endsWith(".json")) {
-                                zis.readBytes().toString(Charsets.UTF_8)
+                            if (entry.name.endsWith(".json", ignoreCase = true) &&
+                                !entry.name.contains('/') && !entry.name.contains('\\')) {
+                                readBounded(zis).toString(Charsets.UTF_8)
                             } else {
                                 throw Exception("Invalid backup file format")
                             }
