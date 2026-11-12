@@ -5,13 +5,18 @@
     <color name="spinner_dropdown_bg">#2D2F33</color>
     <color name="spinner_dropdown_stroke">#4B5563</color>
     <color name="spinner_dropdown_arrow">#94A3B8</color>
+    <!-- HuBox blue-white theme palette (dark mode) -->
+    <color name="hubox_blue_primary">#8AB4FF</color>
+    <color name="hubox_blue_primary_dark">#5D91EA</color>
+    <color name="hubox_blue_accent">#A6C8FF</color>
+
     <!-- Material Design 3 全局色彩与层级系统 (夜间模式) -->
-    <color name="md3_background">#121212</color>
-    <color name="md3_surface">#1E1E1E</color>
-    <color name="md3_text_primary">#E6E1E5</color>
-    <color name="md3_text_secondary">#CAC4D0</color>
-    <color name="md3_top_app_bar">#1E1E1E</color>
-    <color name="nav_icon_unselected">#CAC4D0</color>
+    <color name="md3_background">#0D1524</color>
+    <color name="md3_surface">#151F31</color>
+    <color name="md3_text_primary">#E8EEF9</color>
+    <color name="md3_text_secondary">#B5C2D8</color>
+    <color name="md3_top_app_bar">#151F31</color>
+    <color name="nav_icon_unselected">#B5C2D8</color>
 
     <!-- 卡片默认细边框：约 12% 白 -->
     <color name="card_stroke">#29FFFFFF</color>
