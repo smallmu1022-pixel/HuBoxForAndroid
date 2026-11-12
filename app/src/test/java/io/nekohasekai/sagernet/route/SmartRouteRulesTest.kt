@@ -51,9 +51,19 @@ class SmartRouteRulesTest {
         assertFalse(foreignCn.contains("android"))
     }
 
+    private fun buildRulesForTest(country: String): List<RuleEntity> =
+        SmartRouteRules.buildSmartRules(
+            rawCountry = country,
+            installedPackages = emptySet(),
+            bundledForeign = emptySet(),
+            proxyAppsEnabled = false,
+            bypassMode = false,
+            individualPackages = emptySet()
+        )
+
     @Test
     fun buildSmartRulesAdaptsToSelectedCountry() {
-        val cnRules = SmartRouteRules.buildSmartRules("cn")
+        val cnRules = buildRulesForTest("cn")
         val googlePlayRule = cnRules.first { it.name == "Smart-GooglePlay" }
         assertTrue(googlePlayRule.domains.contains("domain:google.cn"))
         assertTrue(googlePlayRule.domains.contains("domain:gvt5.com"))
@@ -61,16 +71,16 @@ class SmartRouteRulesTest {
         assertTrue(cnRules.any { it.outbound == -1L && it.domains.contains("geosite:cn") && it.domains.contains("domain:cn") })
         assertTrue(cnRules.any { it.outbound == -1L && it.ip.contains("geoip:cn") })
 
-        val ruRules = SmartRouteRules.buildSmartRules("ru")
+        val ruRules = buildRulesForTest("ru")
         assertTrue(ruRules.any { it.outbound == -1L && it.domains.contains("geosite:ru") && it.domains.contains("domain:ru") })
         assertTrue(ruRules.any { it.outbound == -1L && it.ip.contains("geoip:ru") })
 
-        val irRules = SmartRouteRules.buildSmartRules("ir")
+        val irRules = buildRulesForTest("ir")
         assertTrue(irRules.any { it.outbound == -1L && it.domains.contains("geosite:ir") && it.domains.contains("domain:ir") })
         assertTrue(irRules.any { it.outbound == -1L && it.ip.contains("geoip:ir") })
 
         for (country in listOf("tr", "id", "in", "vn", "br")) {
-            val countryRules = SmartRouteRules.buildSmartRules(country)
+            val countryRules = buildRulesForTest(country)
             assertTrue("$country geosite ruleset should be available", countryRules.any {
                 it.outbound == -1L && it.domains.contains("geosite:$country")
             })

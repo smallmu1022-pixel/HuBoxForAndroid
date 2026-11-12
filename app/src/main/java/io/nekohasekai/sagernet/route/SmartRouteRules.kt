@@ -507,7 +507,14 @@ object SmartRouteRules {
      * 5. 本国 IP 段 (geoip:<country>) -> 直连
      * 6. 其余未命中流量由 route.final 兜底走主代理节点
      */
-    fun buildSmartRules(rawCountry: String = "cn"): List<RuleEntity> {
+    fun buildSmartRules(
+        rawCountry: String = "cn",
+        installedPackages: Set<String>? = null,
+        bundledForeign: Set<String>? = null,
+        proxyAppsEnabled: Boolean? = null,
+        bypassMode: Boolean? = null,
+        individualPackages: Set<String>? = null
+    ): List<RuleEntity> {
         val country = rawCountry.trim().lowercase().ifBlank { "cn" }
         val rules = ArrayList<RuleEntity>()
 
@@ -544,7 +551,21 @@ object SmartRouteRules {
         )
 
         // 2. 应用级智能识别：国外软件走代理，本国软件走直连（浏览器与混合应用自动穿透到域名/IP 层）
-        val (domesticApps, foreignApps) = classifyApps(country)
+        val hasClassificationOverrides = installedPackages != null ||
+            bundledForeign != null || proxyAppsEnabled != null ||
+            bypassMode != null || individualPackages != null
+        val (domesticApps, foreignApps) = if (!hasClassificationOverrides) {
+            classifyApps(country)
+        } else {
+            classifyApps(
+                country = country,
+                installedPackages = installedPackages ?: emptySet(),
+                bundledForeign = bundledForeign ?: emptySet(),
+                proxyAppsEnabled = proxyAppsEnabled ?: false,
+                bypassMode = bypassMode ?: false,
+                individualPackages = individualPackages ?: emptySet()
+            )
+        }
         if (foreignApps.isNotEmpty()) {
             rules.add(
                 RuleEntity(
