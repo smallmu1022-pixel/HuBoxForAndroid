@@ -797,6 +797,26 @@ class MainActivity : ThemedActivity(),
             it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
+        proxyModeView.findViewById<View>(R.id.btn_battery_saver_mode).setOnClickListener {
+            val modes = arrayOf("performance", "balanced", "extreme")
+            val labels = arrayOf(
+                getString(R.string.battery_saver_performance),
+                getString(R.string.battery_saver_balanced),
+                getString(R.string.battery_saver_extreme),
+            )
+            val selected = modes.indexOf(DataStore.batterySaverMode).takeIf { index -> index >= 0 } ?: 1
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.battery_saver_title)
+                .setSingleChoiceItems(labels, selected) { dialog, which ->
+                    DataStore.batterySaverMode = modes[which]
+                    updateProxyModeCard(proxyModeView)
+                    dialog.dismiss()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
         updateProxyModeCard(proxyModeView)
         drawerMenuItems.addView(proxyModeView)
     }
@@ -825,6 +845,11 @@ class MainActivity : ThemedActivity(),
 
     private fun updateProxyModeCard(root: View? = proxyModeCardView) {
         val view = root ?: return
+        view.findViewById<TextView>(R.id.text_battery_saver_mode_value)?.text = when (DataStore.batterySaverMode) {
+            "performance" -> getString(R.string.battery_saver_performance)
+            "extreme" -> getString(R.string.battery_saver_extreme)
+            else -> getString(R.string.battery_saver_balanced)
+        }
         val isGlobal = DataStore.globalMode
         val isSmart = DataStore.smartMode && !isGlobal
         val btnSmart = view.findViewById<LinearLayout>(R.id.btn_mode_smart) ?: return
