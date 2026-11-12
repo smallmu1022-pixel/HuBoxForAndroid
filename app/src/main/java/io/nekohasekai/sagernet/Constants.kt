@@ -58,6 +58,7 @@ object Key {
     const val MIXED_AUTH_CONFIG = "mixedAuthConfig" // 设置页「配置身份验证」入口，仅 UI 查找用
     const val ALLOW_ACCESS = "allowAccess"
     const val SPEED_INTERVAL = "speedInterval"
+    const val BATTERY_SAVER_MODE = "batterySaverMode"
     const val SHOW_DIRECT_SPEED = "showDirectSpeed"
     const val SHOW_LANDING_IP = "showLandingIp"
 
