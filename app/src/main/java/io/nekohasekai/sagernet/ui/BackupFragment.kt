@@ -342,7 +342,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
             try {
                 val client = OkHttpClient()
                 val baseUrl = DataStore.webdavServer!!.trimEnd('/')
-                val path = DataStore.webdavPath?.trim('/')?.takeIf { it.isNotEmpty() } ?: "Throne"
+                val path = DataStore.webdavPath?.trim('/')?.takeIf { it.isNotEmpty() } ?: "OwnBox"
 
                 if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
                     throw Exception("Invalid server URL: must start with http:// or https://")
