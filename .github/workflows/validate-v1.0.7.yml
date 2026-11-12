@@ -22,10 +22,12 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
       - name: Install Android NDK
-        run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager --install "ndk;25.0.8775105"
+        run: sdkmanager --install "ndk;25.0.8775105"
       - name: Build native LibCore
         run: ./run lib core
       - name: Verify LibCore AAR
@@ -54,10 +56,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
       - name: Install Android NDK
-        run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager --install "ndk;25.0.8775105"
+        run: sdkmanager --install "ndk;25.0.8775105"
       - name: Download LibCore AAR
         uses: actions/download-artifact@v4
         with:
