@@ -98,7 +98,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
     override fun name0() = app.getString(R.string.backup)
 
     var content = ""
-    private val exportSettings = registerForActivityResult(ActivityResultContracts.CreateDocument()) { data ->
+    private val exportSettings = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { data ->
         if (data != null) {
             runOnDefaultDispatcher {
                 try {
@@ -119,6 +119,9 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         }
     }
 
+    private fun backupFileName(): String =
+        "HuBox_backup_${java.text.SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.json"
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -126,45 +129,50 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
         binding.actionExport.setOnClickListener {
             runOnDefaultDispatcher {
-                backupData = doBackup(
-                    binding.backupConfigurations.isChecked,
-                    binding.backupRules.isChecked,
-                    binding.backupSettings.isChecked
-                )
-                onMainDispatcher {
-                    startFilesForResult(
-                        exportSettings, "HuBox_backup_${Date().toLocaleString()}.json"
+                try {
+                    backupData = doBackup(
+                        binding.backupConfigurations.isChecked,
+                        binding.backupRules.isChecked,
+                        binding.backupSettings.isChecked
                     )
+                    onMainDispatcher {
+                        startFilesForResult(exportSettings, backupFileName())
+                    }
+                } catch (e: Exception) {
+                    Logs.w(e)
+                    onMainDispatcher { safeSnackbar(e.readableMessage) }
                 }
             }
         }
 
         binding.actionShare.setOnClickListener {
             runOnDefaultDispatcher {
-                backupData = doBackup(
-                    binding.backupConfigurations.isChecked,
-                    binding.backupRules.isChecked,
-                    binding.backupSettings.isChecked
-                )
-                app.cacheDir.mkdirs()
-                val cacheFile = File(
-                    app.cacheDir, "HuBox_backup_${Date().toLocaleString()}.json"
-                )
-                cacheFile.writeBytes(backupData)
-                onMainDispatcher {
-                    startActivity(
-                        Intent.createChooser(
-                            Intent(Intent.ACTION_SEND).setType("application/json")
-                                .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                .putExtra(
-                                    Intent.EXTRA_STREAM, FileProvider.getUriForFile(
-                                        app, BuildConfig.APPLICATION_ID + ".cache", cacheFile
-                                    )
-                                ), app.getString(R.string.abc_shareactionprovider_share_with)
-                        )
+                try {
+                    backupData = doBackup(
+                        binding.backupConfigurations.isChecked,
+                        binding.backupRules.isChecked,
+                        binding.backupSettings.isChecked
                     )
+                    app.cacheDir.mkdirs()
+                    val cacheFile = File(app.cacheDir, backupFileName())
+                    cacheFile.writeBytes(backupData)
+                    onMainDispatcher {
+                        startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND).setType("application/json")
+                                    .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    .putExtra(
+                                        Intent.EXTRA_STREAM, FileProvider.getUriForFile(
+                                            app, BuildConfig.APPLICATION_ID + ".cache", cacheFile
+                                        )
+                                    ), app.getString(R.string.abc_shareactionprovider_share_with)
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Logs.w(e)
+                    onMainDispatcher { safeSnackbar(e.readableMessage) }
                 }
-
             }
         }
 
@@ -394,7 +402,9 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         throw Exception("Failed to list directory: ${response.message}")
                     }
 
-                    val responseBody = response.body?.string() ?: throw Exception("Empty response")
+                    val responseBody = response.body?.byteStream()?.use {
+                        readBounded(it, 2 * 1024 * 1024).toString(Charsets.UTF_8)
+                    } ?: throw Exception("Empty response")
                     Logs.d("WebDAV restore - Directory listing: $responseBody")
                     
                     val patterns = listOf(
@@ -830,8 +840,8 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         val profiles = if (importProfiles) decodeItems(content.getJSONArray("profiles")) {
             ProxyEntity.CREATOR.createFromParcel(it)
         } else emptyList()
-        val groups = if (importProfiles) decodeItems(content.getJSONArray("groups")) {
-            ProxyGroup.CREATOR.createFromParcel(it)
+        val groups = if (importProfiles && content.has("groups")) {
+            decodeItems(content.getJSONArray("groups")) { ProxyGroup.CREATOR.createFromParcel(it) }
         } else emptyList()
         val rules = if (importRules) decodeItems(content.getJSONArray("rules")) {
             ParcelizeBridge.createRule(it)

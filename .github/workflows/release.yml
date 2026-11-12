@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release Tag (e.g. v2.3.9)"
+        description: "Release Tag (e.g. v1.0.7)"
         required: true
-        default: "v2.3.9"
+        default: "v1.0.7"
 
 permissions:
   contents: read
@@ -20,6 +20,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-21 platforms;android-35 build-tools;35.0.1'
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;25.0.8775105"
       - name: Golang Status
         run: find buildScript libcore/*.sh nb4a.properties | xargs cat | sha1sum > golang_status
       - name: Libcore Status
@@ -35,7 +41,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
         with:
-          go-version: ^1.25
+          go-version: 1.26.11
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: ./run lib core
@@ -66,6 +72,12 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-21 platforms;android-35 build-tools;35.0.1'
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;25.0.8775105"
       - name: Download LibCore AAR
         uses: actions/download-artifact@v4
         with:

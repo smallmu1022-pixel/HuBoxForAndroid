@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: hubox-v1.0.7-validation-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   libcore:
     name: Build and verify LibCore
@@ -25,7 +29,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
+          packages: 'platform-tools platforms;android-21 platforms;android-35 build-tools;35.0.1'
       - name: Install Android NDK
         run: sdkmanager --install "ndk;25.0.8775105"
       - name: Build native LibCore
@@ -56,10 +60,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
+          packages: 'platform-tools platforms;android-21 platforms;android-35 build-tools;35.0.1'
       - name: Install Android NDK
         run: sdkmanager --install "ndk;25.0.8775105"
       - name: Download LibCore AAR
@@ -80,13 +85,28 @@ jobs:
         env:
           BUILD_PLUGIN: none
         run: |
-          ./gradlew --no-daemon testPreviewDebugUnitTest lintPreviewDebug assemblePreviewDebug
+          ./gradlew --no-daemon testPreviewDebugUnitTest lintPreviewDebug assemblePreviewDebug assemblePreviewRelease
       - name: Verify APK output
         run: |
-          APK=$(find app/build/outputs/apk -name '*.apk' -type f | head -n 1)
-          test -n "$APK"
-          test -s "$APK"
-          echo "Validated APK: $APK"
+          DEBUG_APK=$(find app/build/outputs/apk/preview/debug -name '*.apk' -type f | head -n 1)
+          RELEASE_APK=$(find app/build/outputs/apk/preview/release -name '*.apk' -type f | head -n 1)
+          test -n "$DEBUG_APK"
+          test -s "$DEBUG_APK"
+          test -n "$RELEASE_APK"
+          test -s "$RELEASE_APK"
+          echo "Validated Debug APK: $DEBUG_APK"
+          echo "Validated Release APK: $RELEASE_APK"
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hubox-v1.0.7-test-lint-reports
+          path: |
+            app/build/test-results/testPreviewDebugUnitTest/**/*.xml
+            app/build/lint.txt
+            app/build/lint.html
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload validation APK
         uses: actions/upload-artifact@v4
         with:
