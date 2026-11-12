@@ -23,7 +23,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-21 platforms;android-35 build-tools;35.0.1'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
       - name: Install Android NDK
         run: sdkmanager --install "ndk;25.0.8775105"
       - name: Golang Status
@@ -75,7 +75,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-21 platforms;android-35 build-tools;35.0.1'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
       - name: Install Android NDK
         run: sdkmanager --install "ndk;25.0.8775105"
       - name: Download LibCore AAR
