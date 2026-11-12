@@ -493,6 +493,16 @@ object SmartRouteRules {
     }.getOrDefault(false)
 
     /**
+     * Preserve explicit user routing rules ahead of generated smart-routing fallbacks.
+     * Block rules remain first so an explicit block cannot be bypassed by later routes.
+     */
+    fun mergeUserRules(userRules: List<RuleEntity>, country: String): List<RuleEntity> {
+        val blockRules = userRules.filter { it.outbound == -2L }
+        val customRules = userRules.filter { it.outbound != -2L }
+        return blockRules + customRules + buildSmartRules(country)
+    }
+
+    /**
      * 构建当前国家/地区的完整四维智能分流规则列表：
      * 1. Google Play 与核心下载服务防误伤规则 -> 代理
      * 2. 国外专属软件 (App) -> 代理 + 远程 DNS

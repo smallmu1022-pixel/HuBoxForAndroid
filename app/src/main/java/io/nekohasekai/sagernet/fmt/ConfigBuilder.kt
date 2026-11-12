@@ -417,11 +417,11 @@ fun buildConfig(
     val extraRules = when {
         forTest -> listOf()
         isSmartRouting -> {
-            // 智能分流开启时路由规则也生效：拦截类规则放最前面，再接智能生成的规则，最后是其余路由规则
-            val dbRules = SagerDatabase.rulesDao.enabledRules()
-            val blockRules = dbRules.filter { it.outbound == -2L }
-            val otherRules = dbRules.filter { it.outbound != -2L }
-            blockRules + io.nekohasekai.sagernet.route.SmartRouteRules.buildSmartRules(DataStore.smartRouteCountry) + otherRules
+            // 用户自定义规则优先于智能分流兜底规则；拦截规则始终置顶。
+            io.nekohasekai.sagernet.route.SmartRouteRules.mergeUserRules(
+                SagerDatabase.rulesDao.enabledRules(),
+                DataStore.smartRouteCountry
+            )
         }
         else -> SagerDatabase.rulesDao.enabledRules()
     }

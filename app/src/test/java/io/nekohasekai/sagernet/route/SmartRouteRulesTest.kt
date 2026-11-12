@@ -67,6 +67,31 @@ class SmartRouteRulesTest {
     }
 
     @Test
+    fun explicitUserRulesTakePriorityOverGeneratedSmartFallbacks() {
+        val blockRule = io.nekohasekai.sagernet.database.RuleEntity(
+            name = "user-block",
+            domains = "domain:malware.example",
+            outbound = -2L,
+            enabled = true
+        )
+        val customRule = io.nekohasekai.sagernet.database.RuleEntity(
+            name = "user-custom",
+            domains = "domain:example.com",
+            outbound = 0L,
+            enabled = true
+        )
+
+        val merged = SmartRouteRules.mergeUserRules(
+            listOf(customRule, blockRule),
+            "cn"
+        )
+
+        assertTrue(merged.first() === blockRule)
+        assertTrue(merged[1] === customRule)
+        assertTrue(merged[2].name == "Smart-GooglePlay")
+    }
+
+    @Test
     fun classifyAppsRespectsPerAppProxySelection() {
         val sampleInstalled = setOf(
             "tv.danmaku.bili",
