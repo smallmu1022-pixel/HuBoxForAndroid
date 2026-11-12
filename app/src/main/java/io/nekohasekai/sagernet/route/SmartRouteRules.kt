@@ -229,8 +229,6 @@ object SmartRouteRules {
     )
 
     private val CN_PACKAGE_PREFIXES = listOf(
-        "cn.",
-        "com.cn.",
         "com.tencent.",
         "com.alibaba.",
         "com.taobao.",
@@ -295,7 +293,6 @@ object SmartRouteRules {
     )
 
     private val RU_PACKAGE_PREFIXES = listOf(
-        "ru.",
         "com.yandex.",
         "ru.yandex.",
         "com.vkontakte.",
@@ -319,9 +316,8 @@ object SmartRouteRules {
     )
 
     private val IR_PACKAGE_PREFIXES = listOf(
-        "ir.",
         "cab.snapp.",
-        "com.digikala"
+        "com.digikala."
     )
 
     fun domesticExplicitPackages(country: String): Set<String> = when (country) {
@@ -340,12 +336,12 @@ object SmartRouteRules {
         "cn" -> CN_PACKAGE_PREFIXES
         "ru" -> RU_PACKAGE_PREFIXES
         "ir" -> IR_PACKAGE_PREFIXES
-        "tr" -> listOf("tr.", "com.turkcell.", "com.ziraat.")
-        "id" -> listOf("id.", "co.id.", "com.gojek.", "com.tokopedia.")
-        "in" -> listOf("in.", "co.in.")
-        "vn" -> listOf("vn.", "com.zing.", "com.vng.")
-        "br" -> listOf("br.", "com.br.")
-        else -> listOf("$country.")
+        "tr" -> listOf("com.turkcell.", "com.ziraat.")
+        "id" -> listOf("com.gojek.", "com.tokopedia.")
+        "in" -> emptyList()
+        "vn" -> listOf("com.zing.", "com.vng.")
+        "br" -> emptyList()
+        else -> emptyList()
     }
 
     /** 各国家/地区的核心直连域名后缀保底列表 */

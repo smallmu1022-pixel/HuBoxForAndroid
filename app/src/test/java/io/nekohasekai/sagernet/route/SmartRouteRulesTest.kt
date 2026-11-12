@@ -92,6 +92,40 @@ class SmartRouteRulesTest {
     }
 
     @Test
+    fun classifyAppsDoesNotTreatCountryCodePackageNamespacesAsDomesticProof() {
+        val sampleInstalled = setOf(
+            "cn.unrelated.foreignapp",
+            "com.cn.unrelated.foreignapp",
+            "ru.unrelated.foreignapp",
+            "ir.unrelated.foreignapp",
+            "tr.unrelated.foreignapp",
+            "id.unrelated.foreignapp",
+            "in.unrelated.foreignapp",
+            "vn.unrelated.foreignapp",
+            "br.unrelated.foreignapp",
+            "com.tencent.mm",
+            "cn.gov.tax.its"
+        )
+
+        val (domesticCn, _) = SmartRouteRules.classifyApps(
+            country = "cn",
+            installedPackages = sampleInstalled,
+            bundledForeign = emptySet()
+        )
+        assertFalse(domesticCn.contains("cn.unrelated.foreignapp"))
+        assertFalse(domesticCn.contains("com.cn.unrelated.foreignapp"))
+        assertTrue(domesticCn.contains("com.tencent.mm"))
+        assertTrue(domesticCn.contains("cn.gov.tax.its"))
+
+        val (domesticRu, _) = SmartRouteRules.classifyApps(
+            country = "ru",
+            installedPackages = sampleInstalled,
+            bundledForeign = emptySet()
+        )
+        assertFalse(domesticRu.contains("ru.unrelated.foreignapp"))
+    }
+
+    @Test
     fun classifyAppsRespectsPerAppProxySelection() {
         val sampleInstalled = setOf(
             "tv.danmaku.bili",
