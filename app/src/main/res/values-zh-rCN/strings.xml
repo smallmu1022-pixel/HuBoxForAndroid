@@ -1300,4 +1300,9 @@
     <string name="status_smart_routing">智能分流</string>
     <string name="status_global_active">全局生效中</string>
     <string name="status_rule_active">按规则运行</string>
+    <string name="battery_saver_title">省电模式</string>
+    <string name="battery_saver_summary">仅调整后台流量统计的轮询频率，不影响 VPN 隧道与保活行为。</string>
+    <string name="battery_saver_performance">性能优先</string>
+    <string name="battery_saver_balanced">智能均衡（推荐）</string>
+    <string name="battery_saver_extreme">极限省电</string>
 </resources>
