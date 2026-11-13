@@ -1,0 +1,72 @@
+name: Update Actions Usage Badge
+
+on:
+  workflow_run:
+    workflows: ["Release Build"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  update-usage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Calculate cumulative Actions minutes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 <<'PY'
+          import json, os, re, subprocess, urllib.request
+          repo = os.environ["GH_REPOSITORY"]
+          token = os.environ["GH_TOKEN"]
+          headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+          def get(url):
+              req = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(req) as response:
+                  return json.load(response)
+          runs = get(f"https://api.github.com/repos/{repo}/actions/runs?per_page=100")["workflow_runs"]
+          total = 0
+          for run in runs:
+              page = get(f"https://api.github.com/repos/{repo}/actions/runs/{run['id']}/jobs?per_page=100")
+              for job in page.get("jobs", []):
+                  start, end = job.get("started_at"), job.get("completed_at")
+                  if not start or not end:
+                      continue
+                  from datetime import datetime
+                  def parse(value):
+                      return datetime.fromisoformat(value.replace("Z", "+00:00"))
+                  seconds = max(0, (parse(end) - parse(start)).total_seconds())
+                  total += int((seconds + 59) // 60)
+          path = "README.md"
+          with open(path, encoding="utf-8") as file:
+              content = file.read()
+          content, count = re.subn(
+              r"(Actions累计计费估算-)[0-9]+分钟",
+              rf"\g<1>{total}分钟",
+              content
+          )
+          if count != 1:
+              raise SystemExit("未找到 README 中唯一的 Actions 用量徽章，停止更新")
+          with open(path, "w", encoding="utf-8") as file:
+              file.write(content)
+          PY
+
+      - name: Commit updated badge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          if git diff --cached --quiet; then
+            echo "Usage badge is already up to date"
+            exit 0
+          fi
+          git commit -m "chore: update Actions usage badge"
+          git push
