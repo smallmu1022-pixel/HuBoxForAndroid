@@ -74,6 +74,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var todayValueView: TextView? = null
     private var ipValueView: TextView? = null
     private var ipQueryInFlight = false
+    private var ipRefreshJob: Job? = null
+    private var ipRetryCount = 0
     private var skipNextResumeRefresh = false
 
     private val connect = registerForActivityResult(VpnRequestActivity.StartService()) {
@@ -110,9 +112,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             }
         }
 
-        view.findViewById<View>(R.id.btn_home_log).setOnClickListener {
-            (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_logcat)
-        }
         view.findViewById<View>(R.id.btn_home_about).setOnClickListener {
             (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_about)
         }
@@ -249,6 +248,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 stateHint.text = getString(R.string.home_action_disconnect)
                 ensureSessionStarted()
                 startSessionTicker()
+                scheduleIpAutoRefresh()
             }
 
             BaseService.State.Connecting -> {
@@ -267,6 +267,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             BaseService.State.Stopping -> {
                 applyOffBackground()
                 stopArcAnimation()
+                ipRefreshJob?.cancel()
                 connectArc.visibility = View.GONE
                 stateText.text = getString(R.string.home_status_stopping)
                 stateHint.text = ""
@@ -275,6 +276,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             else -> {
                 applyOffBackground()
                 stopArcAnimation()
+                ipRefreshJob?.cancel()
                 connectArc.visibility = View.GONE
                 stopSessionTicker()
                 if (HomeModules.sessionStart(ctx) > 0) {
@@ -582,7 +584,31 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             result?.onSuccess { info ->
                 target.text = "${info.countryFlag} ${info.ip}"
             }?.onFailure {
-                if (force) target.text = getString(R.string.home_exit_ip_unknown)
+                if (force && ipRetryCount < 1 && DataStore.serviceState.connected) {
+                    // The auto refresh can race the tunnel coming up; retry once.
+                    ipRetryCount++
+                    ipRefreshJob = viewLifecycleOwner.lifecycleScope.launch {
+                        delay(2000)
+                        if (isAdded && DataStore.serviceState.connected) {
+                            updateIpModule(force = true)
+                        }
+                    }
+                } else if (force) {
+                    target.text = getString(R.string.home_exit_ip_unknown)
+                }
+            }
+        }
+    }
+
+    // HuBox v1.1.2: refresh the exit IP automatically once the tunnel is up,
+    // instead of waiting for a manual tap on the IP card.
+    private fun scheduleIpAutoRefresh() {
+        ipRefreshJob?.cancel()
+        ipRetryCount = 0
+        ipRefreshJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(1200)
+            if (isAdded && DataStore.serviceState.connected) {
+                updateIpModule(force = true)
             }
         }
     }
