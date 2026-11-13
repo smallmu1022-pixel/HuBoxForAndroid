@@ -81,12 +81,20 @@ class SmartRouteRulesTest {
         assertTrue(irRules.any { it.outbound == -1L && it.domains.contains("geosite:ir") && it.domains.contains("domain:ir") })
         assertTrue(irRules.any { it.outbound == -1L && it.ip.contains("geoip:ir") })
 
+        val catalog = RuleSetCatalog.current()
         for (country in listOf("tr", "id", "in", "vn", "br")) {
             val countryRules = buildRulesForTest(country)
-            assertTrue("$country geosite ruleset should be available", countryRules.any {
-                it.outbound == -1L && it.domains.contains("geosite:$country")
-            })
-            assertTrue("$country geoip ruleset should be available", countryRules.any {
+            val domainRule = countryRules.firstOrNull {
+                it.outbound == -1L && it.domains.isNotBlank()
+            }
+            assertTrue("$country should retain country-domain fallback rules",
+                domainRule?.domains?.contains("domain:$country") == true)
+
+            val geositeAvailable = catalog.urlOf("geosite:$country") != null
+            assertTrue("$country GeoSite rule should match catalog availability",
+                countryRules.any { it.outbound == -1L && it.domains.contains("geosite:$country") } == geositeAvailable)
+
+            assertTrue("$country GeoIP ruleset should be available", countryRules.any {
                 it.outbound == -1L && it.ip.contains("geoip:$country")
             })
         }
