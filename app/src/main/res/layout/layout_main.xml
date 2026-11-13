@@ -17,8 +17,7 @@
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/fragment_holder"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginBottom="56dp" />
+            android:layout_height="match_parent" />
 
         <!-- We double trackThickness as half of it will be invisible -->
         <com.google.android.material.progressindicator.CircularProgressIndicator
@@ -52,7 +51,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:layout_marginBottom="56dp"
             android:nextFocusUp="@+id/fab"
             app:backgroundTint="?colorPrimary"
             app:contentInsetStart="0dp"
@@ -212,16 +210,6 @@
             android:visibility="gone"
             android:alpha="0"
             android:elevation="20dp" />
-
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottom_nav"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_gravity="bottom"
-            android:background="?attr/colorSurface"
-            android:elevation="8dp"
-            app:labelVisibilityMode="labeled"
-            app:menu="@menu/bottom_navigation" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

@@ -3,6 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory app:title="@string/theme">
+        <moe.matsuri.nb4a.ui.ColorPickerPreference
+            android:title="@string/theme"
+            app:icon="@drawable/ic_baseline_color_lens_24"
+            app:key="appTheme" />
         <moe.matsuri.nb4a.ui.SimpleMenuPreference
             app:defaultValue="0"
             app:entries="@array/night_mode"
