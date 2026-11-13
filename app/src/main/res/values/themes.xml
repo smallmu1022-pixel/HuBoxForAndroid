@@ -598,11 +598,11 @@
 
     <!-- Bottom navigation: selected label is bold, both use the tint selector -->
     <style name="TextAppearance.HuBox.BottomNav" parent="TextAppearance.MaterialComponents.Caption">
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="TextAppearance.HuBox.BottomNav.Active" parent="TextAppearance.MaterialComponents.Caption">
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 

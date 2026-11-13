@@ -26,11 +26,18 @@
             app:title="@string/language"
             app:useSimpleSummaryProvider="true" />
         <Preference
-            app:icon="@drawable/ic_baseline_tune_24"
-            app:key="uiScaleSettings"
+            app:icon="@drawable/ic_image_photo"
+            app:key="homeBackground"
             app:persistent="false"
-            app:summary="@string/ui_scale_settings_summary"
-            app:title="@string/ui_scale_settings_title" />
+            app:summary="@string/home_background_not_set"
+            app:title="@string/home_background_title"
+            app:widgetLayout="@layout/preference_widget_chevron" />
+        <Preference
+            app:icon="@drawable/ic_navigation_close"
+            app:key="homeBackgroundClear"
+            app:persistent="false"
+            app:title="@string/home_background_clear"
+            app:widgetLayout="@layout/preference_widget_chevron" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/cag_profile_list">
