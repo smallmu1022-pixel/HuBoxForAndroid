@@ -127,13 +127,27 @@ class MainActivity : ThemedActivity(),
         }
         binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
         binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
-        val drawerRoot: View = binding.navView
-        navigation = drawerRoot.findViewById(R.id.nav_menu_view)
-        drawerSettingsButton = drawerRoot.findViewById(R.id.drawer_settings_button)
-        drawerAboutButton = drawerRoot.findViewById(R.id.drawer_about_button)
-        drawerMenuItems = drawerRoot.findViewById(R.id.drawer_menu_items)
-        drawerMenuScroll = drawerRoot.findViewById(R.id.drawer_menu_scroll)
-        binding.drawerLayout.removeView(binding.navViewBlack)
+        val drawerRoot: View
+        if (themeResId !in intArrayOf(
+                R.style.Theme_SagerNet_Black
+            )
+        ) {
+            drawerRoot = binding.navView
+            navigation = drawerRoot.findViewById(R.id.nav_menu_view)
+            drawerSettingsButton = drawerRoot.findViewById(R.id.drawer_settings_button)
+            drawerAboutButton = drawerRoot.findViewById(R.id.drawer_about_button)
+            drawerMenuItems = drawerRoot.findViewById(R.id.drawer_menu_items)
+            drawerMenuScroll = drawerRoot.findViewById(R.id.drawer_menu_scroll)
+            binding.drawerLayout.removeView(binding.navViewBlack)
+        } else {
+            drawerRoot = binding.navViewBlack
+            navigation = drawerRoot.findViewById(R.id.nav_menu_view_black)
+            drawerSettingsButton = drawerRoot.findViewById(R.id.drawer_settings_button_black)
+            drawerAboutButton = drawerRoot.findViewById(R.id.drawer_about_button_black)
+            drawerMenuItems = drawerRoot.findViewById(R.id.drawer_menu_items_black)
+            drawerMenuScroll = drawerRoot.findViewById(R.id.drawer_menu_scroll_black)
+            binding.drawerLayout.removeView(binding.navView)
+        }
         val drawerFactor = UiScaleManager.drawerFactor()
         val baseDrawerWidthDp = 260f
         val drawerWidth = minOf(
@@ -156,9 +170,6 @@ class MainActivity : ThemedActivity(),
             drawerAboutButton.scaleY = drawerFactor
         }
         navigation.setNavigationItemSelectedListener(this)
-        binding.bottomNav.setOnItemSelectedListener { item ->
-            if (syncingBottomNav) true else displayFragmentWithId(item.itemId)
-        }
         rebuildDrawerItems()
         binding.drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
             override fun onDrawerOpened(drawerView: View) {
@@ -189,8 +200,8 @@ class MainActivity : ThemedActivity(),
         ViewCompat.requestApplyInsets(drawerRoot)
         attachDrawerScrollFades(
             drawerRoot,
-            R.id.drawer_top_fade,
-            R.id.drawer_bottom_fade,
+            if (themeResId !in intArrayOf(R.style.Theme_SagerNet_Black)) R.id.drawer_top_fade else R.id.drawer_top_fade_black,
+            if (themeResId !in intArrayOf(R.style.Theme_SagerNet_Black)) R.id.drawer_bottom_fade else R.id.drawer_bottom_fade_black,
         )
 
         if (savedInstanceState == null) {
@@ -613,13 +624,6 @@ class MainActivity : ThemedActivity(),
         menu.findItem(id)?.isChecked = true
         updateDrawerItemSelection(id)
         drawerSettingsButton.isSelected = id == R.id.nav_settings
-        if (id == R.id.nav_configuration || id == R.id.nav_group ||
-            id == R.id.nav_tools || id == R.id.nav_settings
-        ) {
-            syncingBottomNav = true
-            binding.bottomNav.selectedItemId = id
-            syncingBottomNav = false
-        }
     }
 
     private fun attachDrawerScrollFades(drawerRoot: View, topFadeId: Int, bottomFadeId: Int) {
@@ -743,7 +747,6 @@ class MainActivity : ThemedActivity(),
     }
 
     private var proxyModeCardView: View? = null
-    private var syncingBottomNav = false
 
     private fun addProxyModeCard() {
         val proxyModeView = layoutInflater.inflate(R.layout.layout_drawer_proxy_mode, drawerMenuItems, false)
@@ -810,7 +813,18 @@ class MainActivity : ThemedActivity(),
                     dialog.dismiss()
                 }
                 .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                .show().also { alert ->
+                    alert.listView?.post {
+                        try {
+                            val lv = alert.listView ?: return@post
+                            val pos = selected - lv.firstVisiblePosition
+                            if (pos >= 0 && pos < lv.childCount) {
+                                (lv.getChildAt(pos) as? TextView)?.setTextColor(Color.parseColor("#00C853"))
+                            }
+                        } catch (_: Throwable) {
+                        }
+                    }
+                }
             it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
@@ -847,6 +861,7 @@ class MainActivity : ThemedActivity(),
             "extreme" -> getString(R.string.battery_saver_extreme)
             else -> getString(R.string.battery_saver_balanced)
         }
+        view.findViewById<TextView>(R.id.text_battery_saver_mode_value)?.setTextColor(Color.parseColor("#00C853"))
         val isGlobal = DataStore.globalMode
         val isSmart = DataStore.smartMode && !isGlobal
         val btnSmart = view.findViewById<LinearLayout>(R.id.btn_mode_smart) ?: return
@@ -866,8 +881,8 @@ class MainActivity : ThemedActivity(),
             ColorUtils.calculateLuminance(themeColor) > 0.50 -> ColorUtils.blendARGB(themeColor, Color.BLACK, 0.35f)
             else -> themeColor
         }
-        // Selected proxy-mode controls follow the active HuBox theme accent.
-        val modeAccent = themeColor
+        // Selected proxy-mode controls use highlight green.
+        val modeAccent = Color.parseColor("#00C853")
         val onSurfaceColor = getColorAttr(R.attr.colorOnSurface)
         val onSurfaceVariantColor = getColorAttr(R.attr.colorOnSurfaceVariant)
 
@@ -946,14 +961,14 @@ class MainActivity : ThemedActivity(),
                     chipCustomRoute.background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = dp(999).toFloat()
-                        setColor(Color.parseColor("#2694A3B8"))
-                        setStroke(dp(1), Color.parseColor("#4D94A3B8"))
+                        setColor(Color.parseColor("#2600C853"))
+                        setStroke(dp(1), Color.parseColor("#4D00C853"))
                     }
                     textStatusCustomRoute.text = getString(R.string.status_global_active)
-                    textStatusCustomRoute.setTextColor(Color.parseColor("#94A3B8"))
+                    textStatusCustomRoute.setTextColor(modeAccent)
                     dotStatusCustomRoute.background = GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
-                        setColor(Color.parseColor("#94A3B8"))
+                        setColor(modeAccent)
                     }
                 }
                 else -> {
@@ -966,12 +981,12 @@ class MainActivity : ThemedActivity(),
                         setStroke(strokePx, ColorUtils.setAlphaComponent(themeColor, if (isDark) 130 else 105))
                     }
                     iconCustomRoute?.drawable?.mutate()?.setTint(accentTextColor)
-                    chipCustomRoute.background = createThemeStatusChipBackground(themeColor, isDark)
+                    chipCustomRoute.background = createThemeStatusChipBackground(modeAccent, isDark)
                     textStatusCustomRoute.text = getString(R.string.status_rule_active)
-                    textStatusCustomRoute.setTextColor(accentTextColor)
+                    textStatusCustomRoute.setTextColor(modeAccent)
                     dotStatusCustomRoute.background = GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
-                        setColor(accentTextColor)
+                        setColor(modeAccent)
                     }
                 }
             }
