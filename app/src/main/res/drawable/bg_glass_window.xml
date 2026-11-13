@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HuBox v1.1.0 glass window background (light, ocean default).
+     Main pages override this at runtime with the active Palette gradient;
+     this drawable covers dialogs and secondary surfaces.
+     Glass is simulated with translucency + gradients; no real-time blur. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="#CEE3FA"
+        android:centerColor="#E2EEFD"
+        android:startColor="#F0F7FF"
+        android:type="linear" />
+</shape>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HuBox v1.1.0 widget glass (dark): deep navy glass matching the dark theme -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <gradient
+                android:angle="135"
+                android:startColor="#D90A1A36"
+                android:centerColor="#CC0D2247"
+                android:endColor="#BF10305E"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="1dp"
+        android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="25dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#3D5A85"
+                android:centerColor="#185A85"
+                android:endColor="#005A85"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#665A85" />
+        </shape>
+    </item>
+</layer-list>

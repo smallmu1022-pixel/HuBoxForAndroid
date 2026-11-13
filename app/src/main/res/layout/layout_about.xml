@@ -37,6 +37,15 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
+                    <!-- HuBox v1.1.0: app icon (halo) at the top of the about page -->
+                    <ImageView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="12dp"
+                        android:contentDescription="@string/app_name"
+                        android:src="@mipmap/ic_launcher" />
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

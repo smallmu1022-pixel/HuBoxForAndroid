@@ -1,11 +1,17 @@
 package io.nekohasekai.sagernet.ui
 
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Gravity
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.DrawableCompat
@@ -26,6 +32,7 @@ import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.utils.AppLocale
+import io.nekohasekai.sagernet.utils.Palette
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.utils.UiScaleManager
 import moe.matsuri.nb4a.ui.SimpleMenuPreference
@@ -68,6 +75,24 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                 startActivity(Intent(requireContext(), UiScaleSettingsActivity::class.java))
                 true
             }
+        }
+
+        val themePalette = findPreference<Preference>("themePalette")
+        fun refreshPaletteSummary() {
+            themePalette?.summary = getString(
+                when (DataStore.themePalette) {
+                    Palette.MINT -> R.string.palette_mint
+                    Palette.GRAPE -> R.string.palette_grape
+                    Palette.CORAL -> R.string.palette_coral
+                    Palette.CUSTOM -> R.string.palette_custom
+                    else -> R.string.palette_ocean
+                }
+            )
+        }
+        refreshPaletteSummary()
+        themePalette?.setOnPreferenceClickListener {
+            showPalettePicker { refreshPaletteSummary() }
+            true
         }
 
         val nightTheme = findPreference<SimpleMenuPreference>(Key.NIGHT_THEME)
@@ -293,6 +318,162 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                 return
             } catch (_: Exception) {}
         }
+    }
+
+    private fun paletteSwatch(color: Int, selected: Boolean, label: String, onClick: () -> Unit): View {
+        val ctx = requireContext()
+        val column = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+            setPadding(dp2px(4), dp2px(4), dp2px(4), dp2px(4))
+            setOnClickListener { onClick() }
+        }
+        val circle = View(ctx).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(color)
+                if (selected) {
+                    setStroke(dp2px(3), Theme.getPrimaryColor(ctx))
+                }
+            }
+        }
+        column.addView(circle, LinearLayout.LayoutParams(dp2px(44), dp2px(44)))
+        val text = TextView(ctx).apply {
+            text = label
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setPadding(0, dp2px(4), 0, 0)
+        }
+        column.addView(
+            text,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        return column
+    }
+
+    private fun showPalettePicker(onChanged: () -> Unit) {
+        val ctx = requireContext()
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp2px(20), dp2px(8), dp2px(20), dp2px(4))
+        }
+        val row = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val dialog = MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.theme_palette_title)
+            .setView(container)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        val entries = listOf(
+            Palette.OCEAN to R.string.palette_ocean,
+            Palette.MINT to R.string.palette_mint,
+            Palette.GRAPE to R.string.palette_grape,
+            Palette.CORAL to R.string.palette_coral,
+        )
+        for ((id, nameRes) in entries) {
+            val scheme = Palette.SCHEMES.getValue(id)
+            row.addView(
+                paletteSwatch(scheme.primary, Palette.currentId() == id, getString(nameRes)) {
+                    DataStore.themePalette = id
+                    dialog.dismiss()
+                    onChanged()
+                    activity?.recreate()
+                },
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+            )
+        }
+        container.addView(row)
+        val customRow = TextView(ctx).apply {
+            text = getString(R.string.palette_custom) + "  ›"
+            textSize = 15f
+            setTextColor(Theme.getPrimaryColor(ctx))
+            setPadding(dp2px(4), dp2px(14), dp2px(4), dp2px(10))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                dialog.dismiss()
+                showCustomColorPicker(onChanged)
+            }
+        }
+        container.addView(customRow)
+        dialog.show()
+    }
+
+    private fun showCustomColorPicker(onChanged: () -> Unit) {
+        val ctx = requireContext()
+        val hsv = FloatArray(3)
+        Color.colorToHSV(Palette.customSeed(), hsv)
+        var hue = hsv[0]
+        var sat = hsv[1]
+        var brightness = hsv[2]
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp2px(20), dp2px(8), dp2px(20), dp2px(4))
+        }
+        val preview = View(ctx).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp2px(14).toFloat()
+            }
+        }
+        container.addView(
+            preview,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(52)),
+        )
+        fun refreshPreview() {
+            val seed = Color.HSVToColor(floatArrayOf(hue, sat, brightness))
+            (preview.background as GradientDrawable).setColor(Palette.derive(seed).primary)
+        }
+        fun addSlider(labelRes: Int, max: Int, initial: Int, onChange: (Int) -> Unit) {
+            val label = TextView(ctx).apply {
+                text = getString(labelRes)
+                textSize = 12f
+                setPadding(0, dp2px(10), 0, 0)
+            }
+            container.addView(label)
+            val bar = SeekBar(ctx).apply {
+                this.max = max
+                progress = initial
+                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                        onChange(progress)
+                        refreshPreview()
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+            container.addView(
+                bar,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        addSlider(R.string.palette_hue, 360, hue.toInt()) { hue = it.toFloat() }
+        addSlider(R.string.palette_saturation, 100, (sat * 100).toInt()) { sat = it / 100f }
+        addSlider(R.string.palette_value, 100, (brightness * 100).toInt()) { brightness = it / 100f }
+        refreshPreview()
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.palette_custom)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                DataStore.customThemeColor = Color.HSVToColor(floatArrayOf(hue, sat, brightness))
+                DataStore.themePalette = Palette.CUSTOM
+                onChanged()
+                activity?.recreate()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun tintPreferenceIcons(group: PreferenceGroup, color: Int) {

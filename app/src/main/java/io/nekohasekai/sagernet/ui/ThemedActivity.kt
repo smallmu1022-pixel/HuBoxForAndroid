@@ -34,6 +34,8 @@ abstract class ThemedActivity : AppCompatActivity {
     private var lastUseSystemTheme: Boolean = false
     private var lastWallpaperColor: Int? = null
     private var lastAppTheme: Int = 0
+    private var lastThemePalette: String = ""
+    private var lastCustomThemeColor: Int = 0
     private var lastNightTheme: Int = 0
     private var lastUsingNight: Boolean = false
     private var lastUiScaleSignature: String = ""
@@ -46,6 +48,8 @@ abstract class ThemedActivity : AppCompatActivity {
         lastUseSystemTheme = DataStore.useSystemTheme
         lastWallpaperColor = if (DataStore.useSystemTheme) Theme.getSystemWallpaperColor(this) else null
         lastAppTheme = DataStore.appTheme
+        lastThemePalette = DataStore.themePalette
+        lastCustomThemeColor = DataStore.customThemeColor
         lastNightTheme = DataStore.nightTheme
         lastUsingNight = Theme.usingNightMode(this)
         lastUiScaleSignature = UiScaleManager.getSignature()
@@ -145,6 +149,8 @@ abstract class ThemedActivity : AppCompatActivity {
         if (lastUseSystemTheme != DataStore.useSystemTheme ||
             (DataStore.useSystemTheme && lastWallpaperColor != currentWallpaperColor) ||
             (!DataStore.useSystemTheme && lastAppTheme != DataStore.appTheme) ||
+            lastThemePalette != DataStore.themePalette ||
+            lastCustomThemeColor != DataStore.customThemeColor ||
             lastNightTheme != DataStore.nightTheme ||
             lastUsingNight != currentUsingNight ||
             (this !is UiScaleSettingsActivity && lastUiScaleSignature != currentScaleSignature)) {

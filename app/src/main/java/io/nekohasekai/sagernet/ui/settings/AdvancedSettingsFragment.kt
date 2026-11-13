@@ -27,7 +27,8 @@ class AdvancedSettingsFragment : BaseSettingsPreferenceFragment() {
         super.onCreatePreferences(savedInstanceState, rootKey)
 
         findPreference<SwitchPreferenceCompat>(Key.ENABLE_CLASH_API)?.setOnPreferenceChangeListener { _, newValue ->
-            (activity as? MainActivity)?.refreshNavMenu(newValue as Boolean)
+            // HuBox v1.1.0: the dashboard entry now lives permanently in the
+            // Tools grid, so there is no drawer menu to refresh anymore.
             reloadListener.onPreferenceChange(findPreference(Key.ENABLE_CLASH_API)!!, newValue)
         }
 

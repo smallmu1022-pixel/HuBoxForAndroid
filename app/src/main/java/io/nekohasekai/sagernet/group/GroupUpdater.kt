@@ -153,9 +153,13 @@ abstract class GroupUpdater {
 
                 try {
                     RawUpdater.doUpdate(proxyGroup, subscription, userInterface, byUser)
+                    SubscriptionStatusStore.recordSuccess(proxyGroup.id)
                     true
                 } catch (e: Throwable) {
                     Logs.w(e)
+                    // HuBox v1.1.0: record every failure (auto updates included)
+                    // so the group card can show it with a retry action.
+                    SubscriptionStatusStore.recordFailure(proxyGroup.id, e.readableMessage)
                     if (byUser) {
                         userInterface?.onUpdateFailure(proxyGroup, e.readableMessage)
                     }

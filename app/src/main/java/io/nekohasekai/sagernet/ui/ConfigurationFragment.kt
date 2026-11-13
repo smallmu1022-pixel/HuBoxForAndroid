@@ -40,7 +40,6 @@ import androidx.core.net.toUri
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.view.size
-import androidx.core.view.GravityCompat
 import android.view.Gravity
 import androidx.core.widget.addTextChangedListener
 import io.nekohasekai.sagernet.utils.Theme
@@ -988,6 +987,7 @@ class ConfigurationFragment @JvmOverloads constructor(
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        io.nekohasekai.sagernet.utils.Palette.applyWindowBackground(view)
         groupPager = view.findViewById(R.id.group_pager)
         groupTabContainer = view.findViewById(R.id.group_tab_container)
         tabLayout = view.findViewById(R.id.group_tab)
@@ -1516,16 +1516,9 @@ class ConfigurationFragment @JvmOverloads constructor(
         val customTitle = view?.findViewById<TextView>(R.id.toolbar_title_view)
         customTitle?.text = ""
 
-        toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
-        val iconColor = resolveTopBarIconTint(requireContext())
-        toolbar.navigationIcon?.let {
-            val tinted = it.mutate()
-            androidx.core.graphics.drawable.DrawableCompat.setTint(tinted, iconColor)
-            toolbar.navigationIcon = tinted
-        }
-        toolbar.setNavigationOnClickListener {
-            (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
-        }
+        // HuBox v1.1.0: drawer removed, no navigation icon on top-level pages.
+        toolbar.setNavigationIcon(null)
+        toolbar.setNavigationOnClickListener(null)
 
         toolbar.menu.findItem(R.id.action_add)?.isVisible = true
         toolbar.menu.findItem(R.id.action_connection_url_test)?.isVisible = true
@@ -2619,6 +2612,9 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
             try {
                 SagerDatabase.proxyDao.updatePingResult(profile.id, profile.status, profile.ping, profile.error)
+                if (profile.status == 1) {
+                    PingHistory.record(SagerNet.application, profile.id, profile.ping)
+                }
                 ProfileManager.postUpdate(profile, false)
             } catch (e: Exception) {
                 Logs.w(e)
@@ -2685,6 +2681,9 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                         try {
                             SagerDatabase.proxyDao.updatePingResult(profile.id, profile.status, profile.ping, profile.error)
+                            if (profile.status == 1) {
+                                PingHistory.record(SagerNet.application, profile.id, profile.ping)
+                            }
                             ProfileManager.postUpdate(profile, false)
                         } catch (e: Exception) {
                             Logs.w(e)
@@ -3655,6 +3654,22 @@ class ConfigurationFragment @JvmOverloads constructor(
                 tvLastUpdated?.isVisible = true
             } else {
                 tvLastUpdated?.isGone = true
+            }
+
+            // HuBox v1.1.0: surface the last update failure in red and turn
+            // the update button into a retry action.
+            val tvUpdateError = root.findViewById<TextView>(R.id.tv_update_error)
+            val lastError = io.nekohasekai.sagernet.group.SubscriptionStatusStore
+                .lastError(root.context, currentGroup.id)
+            if (lastError != null) {
+                tvUpdateError?.text = getString(R.string.sub_update_failed, lastError)
+                tvUpdateError?.isVisible = true
+                btnUpdate?.text = getString(R.string.hubox_retry)
+                btnUpdate?.setTextColor(Color.parseColor("#E53935"))
+            } else {
+                tvUpdateError?.isGone = true
+                btnUpdate?.text = getString(R.string.group_update)
+                btnUpdate?.setTextColor(root.context.getColorAttr(android.R.attr.textColorSecondary))
             }
 
             card.isVisible = true
@@ -4731,6 +4746,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 val pf = parentFragment as? ConfigurationFragment ?: return
 
                 entity = proxyEntity
+
+                // HuBox v1.1.0: nodes whose last test failed are greyed out.
+                itemView.alpha = if (proxyEntity.status == 3) 0.55f else 1f
                 val bean = proxyEntity.requireBean()
 
                 profileName.text = bean.displayName()

@@ -2,4 +2,8 @@
 <resources>
     <item name="nav_settings" type="id" />
     <item name="nav_about" type="id" />
+    <!-- HuBox v1.1.0: kept so the (now unreachable) legacy home-header code in
+         ConfigurationFragment still resolves; the header include itself moved
+         to the new glass Home page. -->
+    <item name="home_header" type="id" />
 </resources>
