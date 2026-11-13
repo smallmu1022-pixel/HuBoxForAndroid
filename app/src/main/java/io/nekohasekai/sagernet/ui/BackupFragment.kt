@@ -226,7 +226,10 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 )
                 isWebDAVBackup = false
                 
-                val client = OkHttpClient()
+                val client = OkHttpClient.Builder()
+                    .followRedirects(false)
+                    .followSslRedirects(false)
+                    .build()
 
                 // 规范化 URL
                 val baseUrl = DataStore.webdavServer!!.trimEnd('/')
@@ -243,8 +246,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 }
 
                 // 使用 HttpUrl 构建路径，避免 # 等特殊字符被当作 fragment
-                val baseHttpUrl = baseUrl.toHttpUrlOrNull()
-                    ?: throw Exception("Invalid server URL: $baseUrl")
+                val baseHttpUrl = io.nekohasekai.sagernet.utils.WebDAVSecurity.parseHttpsUrl(baseUrl)
 
                 val dirUrl = baseHttpUrl.newBuilder().apply {
                     path.split('/').filter { it.isNotEmpty() }.forEach { segment ->
@@ -256,8 +258,8 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                     .addPathSegment(fileName)
                     .build()
 
-                Logs.d("WebDAV backup - Directory URL: $dirUrl")
-                Logs.d("WebDAV backup - File URL: $fileUrl")
+                Logs.d("WebDAV backup - Preparing remote directory")
+                Logs.d("WebDAV backup - Uploading archive")
 
                 // 先检查目录是否存在
                 val propfindRequest = Request.Builder()
@@ -279,8 +281,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         401 -> throw Exception("Authentication failed")
                         else -> {
                             if (!response.isSuccessful) {
-                                val errorBody = response.body?.string()
-                                Logs.e("WebDAV backup - PROPFIND error: $errorBody")
+                                Logs.e("WebDAV backup - PROPFIND failed with HTTP ${response.code}")
                                 throw Exception("Failed to check directory (${response.code}): ${response.message}")
                             }
                         }
@@ -301,8 +302,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
                     client.newCall(mkcolRequest).execute().use { response ->
                         if (!response.isSuccessful) {
-                            val errorBody = response.body?.string()
-                            Logs.e("WebDAV backup - MKCOL error: $errorBody")
+                            Logs.e("WebDAV backup - MKCOL failed with HTTP ${response.code}")
                             throw Exception("Failed to create directory (${response.code}): ${response.message}")
                         }
                     }
@@ -322,9 +322,8 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
                 client.newCall(putRequest).execute().use { response ->
                     if (!response.isSuccessful) {
-                        val errorBody = response.body?.string()
-                        Logs.e("WebDAV backup - PUT error: $errorBody")
-                        throw Exception("Upload failed (${response.code}): ${response.message}\n$errorBody")
+                        Logs.e("WebDAV backup - PUT failed with HTTP ${response.code}")
+                        throw Exception("Upload failed (${response.code}): ${response.message}")
                     }
                     Logs.d("WebDAV backup - Upload successful")
                 }
@@ -334,7 +333,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 }
             } catch (e: Exception) {
                 isWebDAVBackup = false  // 确保发生异常时也重置标志
-                Logs.w(e)
+                Logs.w("WebDAV backup failed (${e.javaClass.simpleName})")
 
                 val errorMessage = try {
                     if (isAdded) {
@@ -364,7 +363,10 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         val activity = requireActivity()
         restoreJob = runOnDefaultDispatcher {
             try {
-                val client = OkHttpClient()
+                val client = OkHttpClient.Builder()
+                    .followRedirects(false)
+                    .followSslRedirects(false)
+                    .build()
                 val baseUrl = DataStore.webdavServer!!.trimEnd('/')
                 val path = DataStore.webdavPath?.trim('/')?.takeIf { it.isNotEmpty() } ?: "OwnBox"
 
@@ -372,8 +374,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                     throw Exception("Invalid server URL: must start with http:// or https://")
                 }
 
-                val baseHttpUrl = baseUrl.toHttpUrlOrNull()
-                    ?: throw Exception("Invalid server URL: $baseUrl")
+                val baseHttpUrl = io.nekohasekai.sagernet.utils.WebDAVSecurity.parseHttpsUrl(baseUrl)
 
                 val dirUrl = baseHttpUrl.newBuilder().apply {
                     path.split('/').filter { it.isNotEmpty() }.forEach { segment ->
@@ -381,7 +382,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                     }
                 }.build()
 
-                Logs.d("WebDAV restore - Directory URL: $dirUrl")
+                Logs.d("WebDAV restore - Listing remote backup directory")
 
                 // 先列出目录内容找到最新的备份文件
                 val propfindRequest = Request.Builder()
@@ -397,15 +398,14 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 // 获取最新的备份文件名
                 val latestBackup = client.newCall(propfindRequest).execute().use { response ->
                     if (!response.isSuccessful && response.code != 207) {
-                        val errorBody = response.body?.string()
-                        Logs.e("WebDAV restore - PROPFIND error: $errorBody")
+                        Logs.e("WebDAV restore - PROPFIND failed with HTTP ${response.code}")
                         throw Exception("Failed to list directory: ${response.message}")
                     }
 
                     val responseBody = response.body?.byteStream()?.use {
                         readBounded(it, 2 * 1024 * 1024).toString(Charsets.UTF_8)
                     } ?: throw Exception("Empty response")
-                    Logs.d("WebDAV restore - Directory listing: $responseBody")
+                    Logs.d("WebDAV restore - Directory listing received")
                     
                     val patterns = listOf(
                         """<D:href>[^<]*?(?:HuBox|OwnBox|ownbox|throne)_backup_[^<]*?\d{8}_\d{6}\.(json|zip)</D:href>""".toRegex(RegexOption.IGNORE_CASE),
@@ -419,7 +419,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         val matches = pattern.findAll(responseBody)
                         matches.forEach { match ->
                             val href = match.value
-                            Logs.d("WebDAV restore - Found backup file with pattern ${pattern.pattern}: $href")
+                            Logs.d("WebDAV restore - Matched a backup file entry")
                             val fileName = """(?:HuBox|OwnBox|ownbox|throne)_backup_[^<]*?\d{8}_\d{6}\.(json|zip)""".toRegex(RegexOption.IGNORE_CASE)
                                 .find(href)?.value
                             if (fileName != null) {
@@ -429,7 +429,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         if (backupFiles.isNotEmpty()) break
                     }
                     
-                    Logs.d("WebDAV restore - Found ${backupFiles.size} backup files: ${backupFiles.joinToString()}")
+                    Logs.d("WebDAV restore - Found ${backupFiles.size} candidate backup files")
 
                     backupFiles.maxByOrNull { fileName ->
                         """(\d{8}_\d{6})""".toRegex().find(fileName)?.value ?: ""
@@ -440,7 +440,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 val fileUrl = dirUrl.newBuilder()
                     .addPathSegment(latestBackup)
                     .build()
-                Logs.d("WebDAV restore - File URL: $fileUrl")
+                Logs.d("WebDAV restore - Downloading selected backup archive")
 
                 val getRequest = Request.Builder()
                     .url(fileUrl)
@@ -453,8 +453,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
                 val content = client.newCall(getRequest).execute().use { response ->
                     if (!response.isSuccessful) {
-                        val errorBody = response.body?.string()
-                        Logs.e("WebDAV restore - GET error: $errorBody")
+                        Logs.e("WebDAV restore - GET failed with HTTP ${response.code}")
                         throw Exception("Download failed (${response.code}): ${response.message}")
                     }
                     val body = response.body ?: throw Exception("Empty backup file")
@@ -547,7 +546,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         .show()
                 }
             } catch (e: Exception) {
-                Logs.w(e)
+                Logs.w("WebDAV restore failed (${e.javaClass.simpleName})")
                 onMainDispatcher {
                     MessageStore.showMessage(activity, e.readableMessage)
                 }
