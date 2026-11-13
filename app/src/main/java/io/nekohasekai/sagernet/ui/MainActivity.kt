@@ -156,6 +156,9 @@ class MainActivity : ThemedActivity(),
             drawerAboutButton.scaleY = drawerFactor
         }
         navigation.setNavigationItemSelectedListener(this)
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            if (syncingBottomNav) true else displayFragmentWithId(item.itemId)
+        }
         rebuildDrawerItems()
         binding.drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
             override fun onDrawerOpened(drawerView: View) {
@@ -610,6 +613,13 @@ class MainActivity : ThemedActivity(),
         menu.findItem(id)?.isChecked = true
         updateDrawerItemSelection(id)
         drawerSettingsButton.isSelected = id == R.id.nav_settings
+        if (id == R.id.nav_configuration || id == R.id.nav_group ||
+            id == R.id.nav_tools || id == R.id.nav_settings
+        ) {
+            syncingBottomNav = true
+            binding.bottomNav.selectedItemId = id
+            syncingBottomNav = false
+        }
     }
 
     private fun attachDrawerScrollFades(drawerRoot: View, topFadeId: Int, bottomFadeId: Int) {
@@ -733,6 +743,7 @@ class MainActivity : ThemedActivity(),
     }
 
     private var proxyModeCardView: View? = null
+    private var syncingBottomNav = false
 
     private fun addProxyModeCard() {
         val proxyModeView = layoutInflater.inflate(R.layout.layout_drawer_proxy_mode, drawerMenuItems, false)

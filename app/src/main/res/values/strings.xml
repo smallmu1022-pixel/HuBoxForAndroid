@@ -412,6 +412,9 @@
     <string name="vpn_connected">Connected, tap to check connection</string>
     <string name="tile_connected">Connected</string>
     <string name="not_connected">Not connected</string>
+    <string name="home_status_connected">Connected</string>
+    <string name="home_status_stopping">Stopping…</string>
+    <string name="home_no_profile">No profile selected</string>
     <!-- subscriptions -->
     <string name="subscriptions">Subscriptions</string>
     <string name="cleartext_http_warning">Cleartext HTTP traffic is insecure</string>

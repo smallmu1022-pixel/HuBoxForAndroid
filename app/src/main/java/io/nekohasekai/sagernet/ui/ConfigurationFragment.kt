@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.ui
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -28,6 +29,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.PopupMenu
@@ -191,6 +193,7 @@ class ConfigurationFragment @JvmOverloads constructor(
     var groupTabContainer: View? = null
     lateinit var tabLayout: TabLayout
     lateinit var groupPager: ViewPager2
+    private var homeHeader: View? = null
 
     val alwaysShowAddress by lazy { DataStore.alwaysShowAddress }
 
@@ -235,6 +238,8 @@ class ConfigurationFragment @JvmOverloads constructor(
         val selectedProxy: Long,
         val currentProfile: Long,
         val serviceStarted: Boolean,
+        val selectedName: String? = null,
+        val selectedMeta: String? = null,
     )
 
     private val profileStateRequests = Channel<Long>(Channel.CONFLATED)
@@ -268,10 +273,23 @@ class ConfigurationFragment @JvmOverloads constructor(
             for (generation in profileStateRequests) {
                 val snapshot = try {
                     withContext(Dispatchers.IO) {
+                        val selectedId = selectedItem?.id ?: DataStore.selectedProxy
+                        val entity = if (selectedId > 0) {
+                            runCatching { SagerDatabase.proxyDao.getById(selectedId) }.getOrNull()
+                        } else {
+                            null
+                        }
+                        val groupName = entity?.let {
+                            runCatching { SagerDatabase.groupDao.getById(it.groupId) }.getOrNull()
+                        }?.displayName()
                         ProfileStateSnapshot(
-                            selectedProxy = selectedItem?.id ?: DataStore.selectedProxy,
+                            selectedProxy = selectedId,
                             currentProfile = DataStore.currentProfile,
                             serviceStarted = DataStore.serviceState.started,
+                            selectedName = entity?.displayName(),
+                            selectedMeta = listOfNotNull(groupName, entity?.displayType())
+                                .joinToString(" · ")
+                                .ifEmpty { null },
                         )
                     }
                 } catch (e: CancellationException) {
@@ -288,6 +306,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                     snapshot.selectedProxy,
                     snapshot.currentProfile,
                     snapshot.serviceStarted,
+                    snapshot.selectedName,
+                    snapshot.selectedMeta,
                 )
                 profileStateInitialized.complete(Unit)
             }
@@ -298,6 +318,8 @@ class ConfigurationFragment @JvmOverloads constructor(
         selectedProxy: Long,
         currentProfile: Long,
         serviceStarted: Boolean,
+        selectedName: String? = null,
+        selectedMeta: String? = null,
     ) {
         val changedIds = mutableSetOf<Long>()
         if (selectedProxySnapshot != selectedProxy) {
@@ -320,9 +342,165 @@ class ConfigurationFragment @JvmOverloads constructor(
         currentProfileSnapshot = currentProfile
         serviceStartedSnapshot = serviceStarted
 
+        updateHomeHero(selectedProxy, selectedName, selectedMeta)
+
         if (changedIds.isEmpty() || !::adapter.isInitialized) return
         adapter.groupFragments.values.forEach { fragment ->
             fragment.adapter?.refreshProfileState(changedIds)
+        }
+    }
+
+    private fun setupHomeHeader(view: View) {
+        val header = view.findViewById<View>(R.id.home_header) ?: return
+        homeHeader = header
+        header.visibility = View.VISIBLE
+
+        header.findViewById<View>(R.id.home_btn_mode_smart).setOnClickListener {
+            if (DataStore.smartMode && !DataStore.globalMode) {
+                DataStore.smartMode = false
+            } else {
+                DataStore.smartMode = true
+                DataStore.globalMode = false
+            }
+            updateHomeModeCard()
+            if (DataStore.serviceState.canStop) {
+                runCatching { SagerNet.reloadService() }
+            }
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+        header.findViewById<View>(R.id.home_btn_mode_global).setOnClickListener {
+            if (DataStore.globalMode) {
+                DataStore.globalMode = false
+            } else {
+                DataStore.globalMode = true
+                DataStore.smartMode = false
+            }
+            updateHomeModeCard()
+            if (DataStore.serviceState.canStop) {
+                runCatching { SagerNet.reloadService() }
+            }
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+        header.findViewById<View>(R.id.home_btn_battery).setOnClickListener {
+            val modes = arrayOf("performance", "balanced", "extreme")
+            val labels = arrayOf(
+                getString(R.string.battery_saver_performance),
+                getString(R.string.battery_saver_balanced),
+                getString(R.string.battery_saver_extreme),
+            )
+            val selected = modes.indexOf(DataStore.batterySaverMode).takeIf { index -> index >= 0 } ?: 1
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.battery_saver_title)
+                .setSingleChoiceItems(labels, selected) { dialog, which ->
+                    DataStore.batterySaverMode = modes[which]
+                    updateHomeModeCard()
+                    dialog.dismiss()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        val mainActivity = activity as? MainActivity
+        header.findViewById<View>(R.id.home_tile_group).setOnClickListener {
+            mainActivity?.displayFragmentWithId(R.id.nav_group)
+        }
+        header.findViewById<View>(R.id.home_tile_route).setOnClickListener {
+            mainActivity?.displayFragmentWithId(R.id.nav_route)
+        }
+        header.findViewById<View>(R.id.home_tile_diagnostics).setOnClickListener {
+            mainActivity?.displayFragmentWithId(R.id.nav_diagnostics)
+        }
+        header.findViewById<View>(R.id.home_tile_tools).setOnClickListener {
+            mainActivity?.displayFragmentWithId(R.id.nav_tools)
+        }
+        header.findViewById<View>(R.id.home_tile_logcat).setOnClickListener {
+            mainActivity?.displayFragmentWithId(R.id.nav_logcat)
+        }
+        header.findViewById<View>(R.id.home_tile_about).setOnClickListener {
+            mainActivity?.displayFragmentWithId(R.id.nav_about)
+        }
+
+        updateHomeHero(DataStore.selectedProxy, null, null)
+        updateHomeModeCard()
+        refreshProfileState()
+    }
+
+    private fun updateHomeHero(selectedProxy: Long, selectedName: String?, selectedMeta: String?) {
+        val header = homeHeader ?: return
+        val (statusRes, dotColor) = when (DataStore.serviceState) {
+            BaseService.State.Connected -> R.string.home_status_connected to Color.parseColor("#34F5A5")
+            BaseService.State.Connecting -> R.string.connecting to Color.parseColor("#FFD166")
+            BaseService.State.Stopping -> R.string.home_status_stopping to Color.parseColor("#FFD166")
+            else -> R.string.not_connected to Color.parseColor("#C9D8F2")
+        }
+        header.findViewById<TextView>(R.id.home_status_text)?.text = getString(statusRes)
+        header.findViewById<View>(R.id.home_status_dot)?.backgroundTintList =
+            ColorStateList.valueOf(dotColor)
+        if (selectedProxy > 0) {
+            if (selectedName != null) {
+                header.findViewById<TextView>(R.id.home_profile_name)?.text = selectedName
+            }
+            if (selectedMeta != null) {
+                header.findViewById<TextView>(R.id.home_profile_meta)?.text = selectedMeta
+            }
+        } else {
+            header.findViewById<TextView>(R.id.home_profile_name)?.text =
+                getString(R.string.home_no_profile)
+            header.findViewById<TextView>(R.id.home_profile_meta)?.text = ""
+        }
+        updateHomeModeCard()
+    }
+
+    private fun updateHomeModeCard() {
+        val header = homeHeader ?: return
+        val ctx = context ?: return
+        header.findViewById<TextView>(R.id.home_text_battery_value)?.text =
+            when (DataStore.batterySaverMode) {
+                "performance" -> getString(R.string.battery_saver_performance)
+                "extreme" -> getString(R.string.battery_saver_extreme)
+                else -> getString(R.string.battery_saver_balanced)
+            }
+        val isGlobal = DataStore.globalMode
+        val isSmart = DataStore.smartMode && !isGlobal
+        val accent = Theme.getPrimaryColor(ctx)
+        val variant = ctx.getColorAttr(R.attr.colorOnSurfaceVariant)
+        applyHomeModeButton(
+            header, R.id.home_btn_mode_smart, R.id.home_icon_mode_smart,
+            R.id.home_text_mode_smart, isSmart, accent, variant,
+        )
+        applyHomeModeButton(
+            header, R.id.home_btn_mode_global, R.id.home_icon_mode_global,
+            R.id.home_text_mode_global, isGlobal, accent, variant,
+        )
+        header.findViewById<TextView>(R.id.home_mode_chip)?.text =
+            getString(if (isGlobal) R.string.mode_global_proxy else R.string.mode_smart_routing)
+    }
+
+    private fun applyHomeModeButton(
+        header: View,
+        btnId: Int,
+        iconId: Int,
+        textId: Int,
+        active: Boolean,
+        accent: Int,
+        variant: Int,
+    ) {
+        val btn = header.findViewById<View>(btnId) ?: return
+        if (active) {
+            val density = resources.displayMetrics.density
+            btn.background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 12 * density
+                setColor(ColorUtils.setAlphaComponent(accent, 22))
+                setStroke((1.5f * density).toInt().coerceAtLeast(1), accent)
+            }
+            header.findViewById<ImageView>(iconId)?.drawable?.mutate()?.setTint(accent)
+            header.findViewById<TextView>(textId)?.setTextColor(accent)
+        } else {
+            btn.setBackgroundResource(R.drawable.bg_proxy_mode_btn_inactive)
+            header.findViewById<ImageView>(iconId)?.drawable?.mutate()?.setTint(variant)
+            header.findViewById<TextView>(textId)?.setTextColor(variant)
         }
     }
 
@@ -841,6 +1019,8 @@ class ConfigurationFragment @JvmOverloads constructor(
             adjustToolbarActionButtons()
         }
 
+        if (!select) setupHomeHeader(view)
+
         val ctx = requireContext()
         val resolvedTitle = getToolbarTitleText()
         when {
@@ -1111,6 +1291,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                 adapter.groupFragments.values.forEach { it.adapter?.reloadProfiles() }
             } else if (key == "activeLeafProfileName" || key == "activeBalancerId") {
                 refreshProfileState()
+            } else if (key == Key.GLOBAL_MODE || key == Key.SMART_MODE || key == Key.BATTERY_SAVER_MODE) {
+                updateHomeModeCard()
             }
         }
     }
@@ -1141,6 +1323,10 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     override fun onResume() {
         super.onResume()
+        if (!select) {
+            updateHomeHero(DataStore.selectedProxy, null, null)
+            updateHomeModeCard()
+        }
         if (speedTestHidden && speedTestJob != null) {
             speedTestHidden = false
             speedTestNotification?.updateNotification(0, 0, true)
