@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HuBox v1.1.0: per-app traffic ranking (from Clash API connections) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_glass_window"
+    android:orientation="vertical"
+    tools:context=".ui.AppTrafficActivity">
+
+    <include
+        layout="@layout/layout_appbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="16dp"
+        android:text="@string/app_traffic_hint"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/traffic_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="12dp" />
+
+        <TextView
+            android:id="@+id/traffic_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:padding="24dp"
+            android:text="@string/app_traffic_empty"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="14sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+</LinearLayout>

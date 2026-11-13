@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Connect button, connected / connecting: brand blue gradient circle -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:angle="270"
+        android:endColor="#1668E3"
+        android:startColor="#3E8BFF"
+        android:type="linear" />
+</shape>

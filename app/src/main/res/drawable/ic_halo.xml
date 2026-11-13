@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Scheme C node halo: open ring (340° -> 40° through 160°), three nodes, center ring point -->
+    <path
+        android:pathData="M39.51,18.36 A16.5,16.5 0 1 1 36.64,34.61"
+        android:fillColor="#00000000"
+        android:strokeWidth="3.4"
+        android:strokeColor="#1668E3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M33.44,34.61 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0"
+        android:fillColor="#1668E3" />
+    <path
+        android:pathData="M5.29,29.64 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0"
+        android:fillColor="#1668E3" />
+    <path
+        android:pathData="M36.31,18.36 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0"
+        android:fillColor="#1668E3" />
+    <path
+        android:pathData="M18.5,24 a5.5,5.5 0 1,0 11,0 a5.5,5.5 0 1,0 -11,0"
+        android:fillColor="#00000000"
+        android:strokeWidth="2.6"
+        android:strokeColor="#2E7CF6" />
+    <path
+        android:pathData="M22.2,24 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0"
+        android:fillColor="#2E7CF6" />
+</vector>

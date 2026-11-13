@@ -8,6 +8,7 @@
         <item name="android:windowLightStatusBar">@bool/hubox_light_system_bars</item>
         <item name="android:windowLightNavigationBar">@bool/hubox_light_system_bars</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@drawable/bg_glass_window</item>
         <item name="android:windowLightStatusBar">@bool/hubox_light_system_bars</item>
         <item name="colorPrimary">@color/hubox_blue_primary</item>
         <item name="colorPrimaryDark">@color/hubox_blue_primary_dark</item>
@@ -572,6 +573,37 @@
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+    </style>
+
+
+    <!-- HuBox v1.1.0 palette presets: dot names inherit Theme.SagerNet;
+         colors resolve through values / values-night palette color entries. -->
+    <style name="Theme.SagerNet.Mint">
+        <item name="colorPrimary">@color/palette_mint_primary</item>
+        <item name="colorPrimaryDark">@color/palette_mint_primary_dark</item>
+        <item name="colorAccent">@color/palette_mint_accent</item>
+    </style>
+
+    <style name="Theme.SagerNet.Grape">
+        <item name="colorPrimary">@color/palette_grape_primary</item>
+        <item name="colorPrimaryDark">@color/palette_grape_primary_dark</item>
+        <item name="colorAccent">@color/palette_grape_accent</item>
+    </style>
+
+    <style name="Theme.SagerNet.Coral">
+        <item name="colorPrimary">@color/palette_coral_primary</item>
+        <item name="colorPrimaryDark">@color/palette_coral_primary_dark</item>
+        <item name="colorAccent">@color/palette_coral_accent</item>
+    </style>
+
+    <!-- Bottom navigation: selected label is bold, both use the tint selector -->
+    <style name="TextAppearance.HuBox.BottomNav" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="TextAppearance.HuBox.BottomNav.Active" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
     </style>
 
 </resources>

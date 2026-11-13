@@ -6,7 +6,7 @@
     <color name="spinner_dropdown_stroke">#4B5563</color>
     <color name="spinner_dropdown_arrow">#94A3B8</color>
     <!-- HuBox blue-white theme palette (dark mode) -->
-    <color name="hubox_blue_primary">#8AB4FF</color>
+    <color name="hubox_blue_primary">#6EA8FF</color>
     <color name="hubox_blue_primary_dark">#5D91EA</color>
     <color name="hubox_blue_accent">#A6C8FF</color>
 
@@ -60,4 +60,20 @@
     <!-- Telegram UI 调色盘 (深色模式) -->
     <color name="telegram_switch_track_off">#334155</color>
     <color name="telegram_switch_thumb_off">#CBD5E1</color>
+
+    <!-- HuBox v1.1.0 latency colors (dark) -->
+    <color name="hubox_latency_good">#4ADE80</color>
+    <color name="hubox_latency_bad">#FDBA74</color>
+    <color name="hubox_latency_error">#F97066</color>
+
+    <!-- HuBox v1.1.0 palette presets (dark primaries) -->
+    <color name="palette_mint_primary">#5EEAD4</color>
+    <color name="palette_mint_primary_dark">#0D9488</color>
+    <color name="palette_mint_accent">#99F6E4</color>
+    <color name="palette_grape_primary">#C4B5FD</color>
+    <color name="palette_grape_primary_dark">#7C5CD6</color>
+    <color name="palette_grape_accent">#DDD0FE</color>
+    <color name="palette_coral_primary">#FCA97F</color>
+    <color name="palette_coral_primary_dark">#E86A4A</color>
+    <color name="palette_coral_accent">#FEC9A7</color>
 </resources>

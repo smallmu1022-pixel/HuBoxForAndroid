@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_glass_window"
     android:clipChildren="false"
     android:clipToPadding="false"
     android:orientation="vertical"
@@ -13,7 +14,7 @@
         android:id="@+id/appbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?android:attr/colorBackground"
+        android:background="@android:color/transparent"
         android:clipChildren="false"
         android:clipToPadding="false"
         app:elevation="0dp"
@@ -63,12 +64,8 @@
         </FrameLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <include
-        android:id="@+id/home_header"
-        layout="@layout/layout_home_header"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
+    <!-- HuBox v1.1.0: the old home header moved to the new glass Home page;
+         the configuration page is now a pure group/profile list. -->
 
     <FrameLayout
         android:id="@+id/group_tab_container"

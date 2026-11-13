@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HuBox v1.1.0 bottom navigation glass bar (dark). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#F2131F36" />
+        </shape>
+    </item>
+    <item android:height="1dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="#2C4568" />
+        </shape>
+    </item>
+</layer-list>

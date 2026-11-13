@@ -405,4 +405,20 @@
     <!-- Telegram UI 调色盘 -->
     <color name="telegram_switch_track_off">#E2E8F0</color>
     <color name="telegram_switch_thumb_off">#FFFFFF</color>
+
+    <!-- HuBox v1.1.0 latency colors -->
+    <color name="hubox_latency_good">#12B76A</color>
+    <color name="hubox_latency_bad">#F79009</color>
+    <color name="hubox_latency_error">#F04438</color>
+
+    <!-- HuBox v1.1.0 palette presets (light) -->
+    <color name="palette_mint_primary">#0D9488</color>
+    <color name="palette_mint_primary_dark">#0B7C72</color>
+    <color name="palette_mint_accent">#14B8A6</color>
+    <color name="palette_grape_primary">#7C5CD6</color>
+    <color name="palette_grape_primary_dark">#6545B8</color>
+    <color name="palette_grape_accent">#9F7EFA</color>
+    <color name="palette_coral_primary">#E86A4A</color>
+    <color name="palette_coral_primary_dark">#C9502F</color>
+    <color name="palette_coral_accent">#FF8A66</color>
 </resources>

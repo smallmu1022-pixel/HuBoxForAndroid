@@ -169,6 +169,7 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_card_update"
                     style="?attr/borderlessButtonStyle"
+                    android:visibility="visible"
                     android:layout_width="wrap_content"
                     android:layout_height="22dp"
                     android:minWidth="0dp"
@@ -184,6 +185,18 @@
                     android:textSize="11sp" />
 
             </LinearLayout>
+
+            <!-- HuBox v1.1.0: last subscription update failure (red, with retry via the update button) -->
+            <TextView
+                android:id="@+id/tv_update_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#E53935"
+                android:textSize="11sp"
+                android:visibility="gone"
+                tools:text="更新失败：network error"
+                tools:visibility="visible" />
 
         </LinearLayout>
 
