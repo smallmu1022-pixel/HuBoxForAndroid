@@ -7,6 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/smallmu1022-pixel/HuBoxForAndroid/releases"><img src="https://img.shields.io/github/v/release/smallmu1022-pixel/HuBoxForAndroid?display_name=tag&label=最新版本" alt="Latest Release"></a>
+  <a href="https://github.com/smallmu1022-pixel/HuBoxForAndroid/releases"><img src="https://img.shields.io/github/downloads/smallmu1022-pixel/HuBoxForAndroid/total?label=下载量" alt="Downloads"></a>
   <a href="https://github.com/smallmu1022-pixel/HuBoxForAndroid/actions"><img src="https://img.shields.io/github/actions/workflow/status/smallmu1022-pixel/HuBoxForAndroid/validate-v1.0.8.yml?label=CI" alt="CI"></a>
   <a href="https://github.com/smallmu1022-pixel/HuBoxForAndroid/actions"><img src="https://img.shields.io/badge/Actions%E7%B4%AF%E8%AE%A1%E8%AE%A1%E8%B4%B9%E4%BC%B0%E7%AE%97-511%E5%88%86%E9%92%9F-orange" alt="Actions usage estimate"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0 License"></a>
