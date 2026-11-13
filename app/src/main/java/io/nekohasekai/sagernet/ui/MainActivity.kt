@@ -599,10 +599,19 @@ class MainActivity : ThemedActivity(),
             }
             view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
                 ?.setTextColor(getColor(R.color.hubox_snackbar_text))
-            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
-                lp.setMargins((16 * density).toInt(), 0, (16 * density).toInt(), (12 * density).toInt())
-                view.layoutParams = lp
+            // HuBox v1.1.3: prompts are shown centered on screen instead of
+            // docked at the bottom. Params are finalized once the view is
+            // attached, so apply again via post{} to make it stick.
+            val sideMargin = (16 * density).toInt()
+            fun centerSnackbar() {
+                (view.layoutParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)?.let { lp ->
+                    lp.gravity = android.view.Gravity.CENTER
+                    lp.setMargins(sideMargin, 0, sideMargin, 0)
+                    view.layoutParams = lp
+                }
             }
+            centerSnackbar()
+            view.post { centerSnackbar() }
         }
     }
 

@@ -22,7 +22,6 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.utils.Theme
-import io.nekohasekai.sagernet.utils.UiScaleManager
 
 abstract class ThemedActivity : AppCompatActivity {
     constructor() : super()
@@ -38,10 +37,11 @@ abstract class ThemedActivity : AppCompatActivity {
     private var lastCustomThemeColor: Int = 0
     private var lastNightTheme: Int = 0
     private var lastUsingNight: Boolean = false
-    private var lastUiScaleSignature: String = ""
 
     override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(UiScaleManager.wrapContext(newBase))
+        // HuBox v1.1.3: the in-app UI/font scaling feature was removed;
+        // interface size and fonts always follow the system settings.
+        super.attachBaseContext(newBase)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +52,6 @@ abstract class ThemedActivity : AppCompatActivity {
         lastCustomThemeColor = DataStore.customThemeColor
         lastNightTheme = DataStore.nightTheme
         lastUsingNight = Theme.usingNightMode(this)
-        lastUiScaleSignature = UiScaleManager.getSignature()
 
         Theme.applyNightTheme()
         if (!isDialog) {
@@ -145,15 +144,13 @@ abstract class ThemedActivity : AppCompatActivity {
         super.onResume()
         val currentWallpaperColor = if (DataStore.useSystemTheme) Theme.getSystemWallpaperColor(this) else null
         val currentUsingNight = Theme.usingNightMode(this)
-        val currentScaleSignature = UiScaleManager.getSignature()
         if (lastUseSystemTheme != DataStore.useSystemTheme ||
             (DataStore.useSystemTheme && lastWallpaperColor != currentWallpaperColor) ||
             (!DataStore.useSystemTheme && lastAppTheme != DataStore.appTheme) ||
             lastThemePalette != DataStore.themePalette ||
             lastCustomThemeColor != DataStore.customThemeColor ||
             lastNightTheme != DataStore.nightTheme ||
-            lastUsingNight != currentUsingNight ||
-            (this !is UiScaleSettingsActivity && lastUiScaleSignature != currentScaleSignature)) {
+            lastUsingNight != currentUsingNight) {
             ActivityCompat.recreate(this)
         }
     }

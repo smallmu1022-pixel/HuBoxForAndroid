@@ -2,8 +2,13 @@ package io.nekohasekai.sagernet.ui
 
 import android.animation.ObjectAnimator
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.format.Formatter
@@ -12,6 +17,7 @@ import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import java.io.File
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
@@ -60,8 +66,11 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     // Halo ring rotation: brisk while connecting, a slow ambient spin once
     // connected (single small view, GPU-cheap, no per-frame work on CPU).
+    // HuBox v1.1.3: the arc radius was shrunk so the ring stays well inside
+    // the button disc and never reads as a shadow outside it.
     private val ARC_CONNECTING_MS = 1100L
     private val ARC_CONNECTED_MS = 6000L
+    private var homeBgVersionApplied = -1
     private var sessionJob: Job? = null
     private var sessionInitRunning = false
     private var sessionTx: Long = 0L
@@ -160,6 +169,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         view.findViewById<View>(R.id.home_btn_mode_global).setOnLongClickListener { openCustomize(); true }
 
         refreshContent()
+        applyHomeBackgroundIfNeeded()
         // onViewCreated already refreshed; the onResume that immediately
         // follows would rebuild every module card a second time for nothing.
         skipNextResumeRefresh = true
@@ -167,6 +177,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     override fun onResume() {
         super.onResume()
+        applyHomeBackgroundIfNeeded()
         if (skipNextResumeRefresh) {
             skipNextResumeRefresh = false
             return
@@ -328,6 +339,67 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         arcAnimator = null
         arcDurationMs = 0L
         if (::connectArc.isInitialized) connectArc.rotation = 0f
+    }
+
+    // HuBox v1.1.3: custom home background image (set in Appearance
+    // settings). Decoded off the main thread, center-cropped to the screen,
+    // with a translucent theme scrim baked in so cards/text stay readable.
+    private fun applyHomeBackgroundIfNeeded() {
+        val root = view ?: return
+        val version = DataStore.homeBackgroundVersion
+        if (version == homeBgVersionApplied) return
+        homeBgVersionApplied = version
+        val path = DataStore.homeBackground
+        if (path.isEmpty()) {
+            root.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_glass_window)
+            return
+        }
+        val appCtx = requireContext().applicationContext
+        val metrics = resources.displayMetrics
+        val targetW = metrics.widthPixels.coerceAtLeast(1)
+        val targetH = metrics.heightPixels.coerceAtLeast(1)
+        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+        viewLifecycleOwner.lifecycleScope.launch {
+            val drawable = withContext(Dispatchers.IO) {
+                runCatching {
+                    val file = File(appCtx.filesDir, path)
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeFile(file.absolutePath, bounds)
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+                    var sample = 1
+                    while (sample <= 32 &&
+                        bounds.outWidth / (sample * 2) >= targetW &&
+                        bounds.outHeight / (sample * 2) >= targetH
+                    ) {
+                        sample *= 2
+                    }
+                    val raw = BitmapFactory.decodeFile(
+                        file.absolutePath,
+                        BitmapFactory.Options().apply { inSampleSize = sample },
+                    ) ?: return@runCatching null
+                    val scale = (targetW.toFloat() / raw.width)
+                        .coerceAtLeast(targetH.toFloat() / raw.height)
+                    val scaledW = (raw.width * scale).toInt().coerceAtLeast(1)
+                    val scaledH = (raw.height * scale).toInt().coerceAtLeast(1)
+                    val scaled = Bitmap.createScaledBitmap(raw, scaledW, scaledH, true)
+                    val cropW = targetW.coerceAtMost(scaledW)
+                    val cropH = targetH.coerceAtMost(scaledH)
+                    val x = ((scaledW - cropW) / 2).coerceAtLeast(0)
+                    val y = ((scaledH - cropH) / 2).coerceAtLeast(0)
+                    val cropped = Bitmap.createBitmap(scaled, x, y, cropW, cropH)
+                    val out = cropped.copy(Bitmap.Config.ARGB_8888, true)
+                    Canvas(out).drawColor(
+                        if (night) Color.argb(96, 6, 14, 30) else Color.argb(80, 255, 255, 255)
+                    )
+                    BitmapDrawable(resources, out)
+                }.getOrNull()
+            }
+            if (isAdded && view === root) {
+                root.background = drawable
+                    ?: ContextCompat.getDrawable(requireContext(), R.drawable.bg_glass_window)
+            }
+        }
     }
 
     private fun loadNodeInfo() {

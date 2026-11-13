@@ -34,13 +34,79 @@ import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.utils.AppLocale
 import io.nekohasekai.sagernet.utils.Palette
 import io.nekohasekai.sagernet.utils.Theme
-import io.nekohasekai.sagernet.utils.UiScaleManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.matsuri.nb4a.ui.SimpleMenuPreference
 import moe.matsuri.nb4a.ui.TelegramGroupedPreferenceDecoration
 
 class AppearanceSettingsFragment : PreferenceFragmentCompat() {
 
     private lateinit var notificationPermission: Preference
+
+    // HuBox v1.1.3: custom home-screen background (any image format the
+    // system gallery offers; the file is copied into internal storage).
+    private var homeBackgroundPref: Preference? = null
+    private var homeBackgroundClearPref: Preference? = null
+
+    private val pickHomeBackground = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) saveHomeBackground(uri)
+    }
+
+    private fun refreshHomeBackgroundSummary() {
+        val isSet = DataStore.homeBackground.isNotEmpty()
+        homeBackgroundPref?.summary = getString(
+            if (isSet) R.string.home_background_set else R.string.home_background_not_set
+        )
+        homeBackgroundClearPref?.isVisible = isSet
+    }
+
+    private fun saveHomeBackground(uri: Uri) {
+        val ctx = requireContext()
+        lifecycleScope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                runCatching {
+                    val target = File(ctx.filesDir, "home_background")
+                    val copied = ctx.contentResolver.openInputStream(uri)?.use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
+                        true
+                    } ?: false
+                    if (!copied) return@runCatching false
+                    // Accept anything the system can decode (jpg/png/webp/
+                    // gif/bmp/heic/...); reject non-images.
+                    val opts = android.graphics.BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+                    android.graphics.BitmapFactory.decodeFile(target.absolutePath, opts)
+                    if (opts.outWidth <= 0 || opts.outHeight <= 0) {
+                        target.delete()
+                        false
+                    } else {
+                        true
+                    }
+                }.getOrDefault(false)
+            }
+            if (ok) {
+                DataStore.homeBackground = "home_background"
+                DataStore.homeBackgroundVersion++
+                Toast.makeText(ctx, R.string.home_background_saved, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(ctx, R.string.home_background_invalid, Toast.LENGTH_SHORT).show()
+            }
+            refreshHomeBackgroundSummary()
+        }
+    }
+
+    private fun clearHomeBackground() {
+        runCatching { File(requireContext().filesDir, "home_background").delete() }
+        DataStore.homeBackground = ""
+        DataStore.homeBackgroundVersion++
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -69,13 +135,19 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<Preference>("uiScaleSettings")?.apply {
-            summary = UiScaleManager.formatSummary()
-            setOnPreferenceClickListener {
-                startActivity(Intent(requireContext(), UiScaleSettingsActivity::class.java))
-                true
-            }
+        // HuBox v1.1.3: custom home-screen background image picker.
+        homeBackgroundPref = findPreference("homeBackground")
+        homeBackgroundClearPref = findPreference("homeBackgroundClear")
+        homeBackgroundPref?.setOnPreferenceClickListener {
+            pickHomeBackground.launch("image/*")
+            true
         }
+        homeBackgroundClearPref?.setOnPreferenceClickListener {
+            clearHomeBackground()
+            refreshHomeBackgroundSummary()
+            true
+        }
+        refreshHomeBackgroundSummary()
 
         val themePalette = findPreference<Preference>("themePalette")
         fun refreshPaletteSummary() {
@@ -292,7 +364,7 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
 
     override fun onResume() {
         super.onResume()
-        findPreference<Preference>("uiScaleSettings")?.summary = UiScaleManager.formatSummary()
+        refreshHomeBackgroundSummary()
         if (::notificationPermission.isInitialized) {
             notificationPermission.setSummary(
                 if (NotificationManagerCompat.from(requireContext()).areNotificationsEnabled()) {
