@@ -90,7 +90,15 @@ object LandingIpManager {
         cachedProfileId = -1L
     }
 
-    fun getCachedInfo(): LandingIpInfo? = currentCache
+    // HuBox v1.1.2: the cached exit IP is only valid for the profile it was
+    // queried through and only while reasonably fresh; anything else must
+    // trigger a new query instead of showing a stale address.
+    fun getCachedInfo(): LandingIpInfo? {
+        val cache = currentCache ?: return null
+        if (cachedProfileId != DataStore.selectedProxy) return null
+        if (System.currentTimeMillis() - cache.queryTimestamp >= CACHE_TTL_MS * 5) return null
+        return cache
+    }
 
     fun isCurrentlyQuerying(): Boolean = isQuerying
 
