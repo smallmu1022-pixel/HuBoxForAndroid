@@ -39,11 +39,6 @@
             app:title="@string/http_proxy_bypass"
             app:useSimpleSummaryProvider="true" />
 
-        <Preference
-            app:icon="@drawable/solar_wi_fi_router_linear"
-            app:key="lanSharing"
-            app:title="@string/lan_sharing" />
-
     </PreferenceCategory>
 
 </PreferenceScreen>
