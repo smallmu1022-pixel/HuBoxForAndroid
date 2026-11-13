@@ -3,10 +3,10 @@ name: HuBox v1.0.7 Validation
 on:
   push:
     branches:
-      - hubox-1.0.7-battery-hardening
+      - hubox-1.0.7-candidate
   pull_request:
     branches:
-      - hubox-1.0.7-battery-hardening
+      - hubox-1.0.7-candidate
 
 permissions:
   contents: read
