@@ -239,7 +239,10 @@ class TrafficLooper
                 delay(if (isForegroundUI) baseDelayMs else 3000L)
                 continue
             }
-            if (!proxy.isInitialized()) continue
+            if (!proxy.isInitialized()) {
+                delay(if (isForegroundUI) baseDelayMs else 3000L)
+                continue
+            }
 
             val snapshot = withStateLock {
                 val currentConfig = proxy.safeConfig ?: return@withStateLock null
