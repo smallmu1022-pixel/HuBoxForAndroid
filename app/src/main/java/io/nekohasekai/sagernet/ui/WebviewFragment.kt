@@ -125,7 +125,7 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
                                     localStorage.setItem("endpointList", JSON.stringify(endpoints));
                                 }
                             }
-                            var cleanHash = location.hash.replace(/([?&])secret=[^&]*/ig, "${'.replace(/[?&]$/, "");
+                            var cleanHash = location.hash.replace(/([?&])secret=[^&]*/ig, function(match, separator) { return separator; }).replace(/[?&]$/, "");
                             var cleanSearch = new URLSearchParams(location.search);
                             cleanSearch.delete("secret");
                             if (cleanHash !== location.hash || cleanSearch.toString() !== new URLSearchParams(location.search).toString()) {
