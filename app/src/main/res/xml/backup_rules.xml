@@ -5,10 +5,10 @@
         <exclude
             domain="database"
             path="sager_net.db" />
-        <include
+        <exclude
             domain="database"
             path="configuration.db" />
-        <include
+        <exclude
             domain="device_database"
             path="configuration.db" />
     </cloud-backup>
@@ -16,10 +16,10 @@
         <include
             domain="database"
             path="sager_net.db" />
-        <include
+        <exclude
             domain="database"
             path="configuration.db" />
-        <include
+        <exclude
             domain="device_database"
             path="configuration.db" />
     </device-transfer>
