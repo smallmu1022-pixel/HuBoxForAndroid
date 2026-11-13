@@ -2,7 +2,7 @@
 <full-backup-content xmlns:tools="http://schemas.android.com/tools"
                      tools:ignore="FullBackupContent">
     <exclude domain="database" path="sager_net.db"/>
-    <!-- No device storage yet in Android 6.0 -->
-    <include domain="database" path="configuration.db"/>
-    <include domain="device_database" path="configuration.db"/>
+    <!-- Configuration contains credentials and API secrets; never include it in OS backups. -->
+    <exclude domain="database" path="configuration.db"/>
+    <exclude domain="device_database" path="configuration.db"/>
 </full-backup-content>

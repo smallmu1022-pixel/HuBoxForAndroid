@@ -62,8 +62,8 @@
                 android:id="@+id/stats_content_container"
                 android:background="?android:attr/selectableItemBackground"
                 android:orientation="vertical"
-                android:paddingHorizontal="14dp"
-                android:paddingVertical="10dp">
+                android:paddingHorizontal="18dp"
+                android:paddingVertical="12dp">
 
                 <!-- Row 1: 左侧 tx / rx (左肩垂直排布独享全宽)，中央 FAB 凹槽安全隔离，右侧 status 与 btn_ip_detail (右肩) -->
                 <LinearLayout
@@ -224,13 +224,13 @@
         <TextView
             android:id="@+id/drawer_brand"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="64dp"
             android:gravity="center_vertical"
-            android:paddingStart="22dp"
+            android:paddingStart="24dp"
             android:paddingEnd="22dp"
             android:text="HuBox"
             android:textColor="?android:attr/textColorPrimary"
-            android:textSize="21sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <FrameLayout
@@ -260,8 +260,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="8dp" />
+                    android:paddingTop="8dp"
+                    android:paddingBottom="12dp" />
             </ScrollView>
 
             <View
@@ -286,7 +286,7 @@
         <LinearLayout
             android:id="@+id/drawer_quick_actions"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="60dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="18dp"

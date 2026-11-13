@@ -102,6 +102,15 @@ class LocalYacdDashboardTest {
         assertTrue(health.contains("followRedirects(false).followSslRedirects(false)"))
     }
 
+    @Test fun remoteDashboardsAreNotGivenTheApplicationSecretAutomatically() {
+        val source = sourceFile("src/main/java/io/nekohasekai/sagernet/ui/WebviewFragment.kt").readText()
+        assertFalse(source.contains("injectZashboardAutoConnect"))
+        assertFalse(source.contains("injectMetaCubeXDAutoConnect"))
+        assertFalse(source.contains("secret=\$secret"))
+        assertTrue(source.contains("delete item.password"))
+        assertTrue(source.contains("delete item.secret"))
+    }
+
     @Test fun healthResponseClosesOnSuccessAndAllFailures() {
         for ((code, text) in listOf(200 to "{\"version\":\"test\"}", 200 to "invalid", 401 to "Unauthorized")) {
             var closed = false

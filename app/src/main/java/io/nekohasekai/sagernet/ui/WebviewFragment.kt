@@ -79,9 +79,11 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
         mWebView.settings.apply {
             domStorageEnabled = true
             javaScriptEnabled = true
-            allowFileAccess = true
+            allowFileAccess = false
+            allowContentAccess = false
             // 允许 HTTPS 外部面板（如 https://board.zash.run.place/）安全请求本地 HTTP Clash API（http://127.0.0.1:9090）
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            // HTTPS dashboards may use the loopback API, but must not load arbitrary insecure origins.
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
         }
         mWebView.webViewClient = object : WebViewClient() {
@@ -123,13 +125,53 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                if (url != null) {
-                    if (url.contains("zash") || url.contains("run.place") || url.contains("board")) {
-                        injectZashboardAutoConnect(view)
-                    } else if (url.contains("metacubex") || url.contains("metacubexd")) {
-                        injectMetaCubeXDAutoConnect(view)
-                    }
-                }
+                val host = url?.toHttpUrlOrNull()?.host?.lowercase(java.util.Locale.ROOT) ?: return
+                if (host != "board.zash.run.place" && host != "metacubex.github.io") return
+
+                // Remove credentials saved by older HuBox builds; never insert the current secret.
+                val cleanup = """
+                    (function() {
+                        try {
+                            if (location.hostname === "board.zash.run.place") {
+                                var key = "setup/api-list";
+                                var entries = JSON.parse(localStorage.getItem(key) || "[]");
+                                if (Array.isArray(entries)) {
+                                    entries.forEach(function(item) {
+                                        if (item && (item.host === "127.0.0.1" || item.host === "localhost") &&
+                                            String(item.port) === "9090") {
+                                            delete item.password;
+                                        }
+                                    });
+                                    localStorage.setItem(key, JSON.stringify(entries));
+                                }
+                            }
+                            if (location.hostname === "metacubex.github.io") {
+                                var endpoints = JSON.parse(localStorage.getItem("endpointList") || "[]");
+                                if (Array.isArray(endpoints)) {
+                                    endpoints.forEach(function(item) {
+                                        if (!item || !item.url) return;
+                                        try {
+                                            var endpoint = new URL(item.url);
+                                            if ((endpoint.hostname === "127.0.0.1" || endpoint.hostname === "localhost") &&
+                                                endpoint.port === "9090") {
+                                                delete item.secret;
+                                            }
+                                        } catch (_) {}
+                                    });
+                                    localStorage.setItem("endpointList", JSON.stringify(endpoints));
+                                }
+                            }
+                            var cleanHash = location.hash.replace(/([?&])secret=[^&]*/ig, function(match, separator) { return separator; }).replace(/[?&]$/, "");
+                            var cleanSearch = new URLSearchParams(location.search);
+                            cleanSearch.delete("secret");
+                            if (cleanHash !== location.hash || cleanSearch.toString() !== new URLSearchParams(location.search).toString()) {
+                                history.replaceState(null, document.title,
+                                    location.pathname + (cleanSearch.toString() ? "?" + cleanSearch.toString() : "") + cleanHash);
+                            }
+                        } catch (_) {}
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(cleanup, null)
             }
         }
         mWebView.webChromeClient = WebChromeClient()
@@ -155,236 +197,17 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
             mapOf("Cache-Control" to "no-store"), html.byteInputStream())
     }
 
-    private fun injectZashboardAutoConnect(view: WebView?) {
-        val secret = DataStore.clashApiSecret
-        val js = """
-            (function() {
-                var secret = "$secret";
-                var listKey = "setup/api-list";
-                var activeKey = "setup/active-uuid";
-
-                // 1. 同步注入 / 更新 localStorage 的后端列表与密钥凭证
-                try {
-                    var list = JSON.parse(localStorage.getItem(listKey) || "[]");
-                    if (!Array.isArray(list)) list = [];
-                    var targetUuid = "hubox-local";
-                    var found = false;
-                    for (var i = 0; i < list.length; i++) {
-                        var item = list[i];
-                        if (item && (item.host === "127.0.0.1" || item.host === "localhost") && String(item.port) === "9090") {
-                            item.password = secret;
-                            item.protocol = "http";
-                            item.type = "clash";
-                            targetUuid = item.uuid || targetUuid;
-                            item.uuid = targetUuid;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        list.unshift({
-                            type: "clash",
-                            protocol: "http",
-                            host: "127.0.0.1",
-                            port: "9090",
-                            secondaryPath: "",
-                            password: secret,
-                            uuid: targetUuid,
-                            label: "HuBox 本地内核",
-                            disableUpgradeCore: true,
-                            disableTunMode: false
-                        });
-                    }
-                    localStorage.setItem(listKey, JSON.stringify(list));
-                    localStorage.setItem(activeKey, targetUuid);
-                    try { window.dispatchEvent(new Event('storage')); } catch (_) {}
-                } catch (_) {}
-
-                // 2. 轮询侦听并自愈 DOM 状态（处理修改后端配置弹窗、连接失败弹窗与 setup 提交）
-                var checkCount = 0;
-                var maxChecks = 40;
-                var checkInterval = setInterval(function() {
-                    checkCount++;
-                    if (checkCount > maxChecks) {
-                        clearInterval(checkInterval);
-                        return;
-                    }
-
-                    // 自动填充任何密码输入框（图二“修改后端配置”弹窗）
-                    var pwInputs = document.querySelectorAll('input[type="password"], input[placeholder*="密码"], input[placeholder*="password"], input[placeholder*="Secret"]');
-                    var filled = false;
-                    pwInputs.forEach(function(inp) {
-                        if (inp && inp.value !== secret) {
-                            inp.value = secret;
-                            try {
-                                inp.dispatchEvent(new Event('input', { bubbles: true }));
-                                inp.dispatchEvent(new Event('change', { bubbles: true }));
-                            } catch (_) {}
-                            filled = true;
-                        }
-                    });
-
-                    // 静默清理“未授权，请重新登录”、“密码不对”等过渡报错气泡
-                    var alerts = document.querySelectorAll('.el-notification, .el-message, [role="alert"], div[class*="toast"], div[class*="alert"]');
-                    alerts.forEach(function(el) {
-                        var text = el.innerText || '';
-                        if (text.indexOf('后端连不上') !== -1 || text.indexOf('未授权') !== -1 || text.indexOf('密码不对') !== -1) {
-                            el.style.display = 'none';
-                        }
-                    });
-
-                    var buttons = Array.from(document.querySelectorAll('button, a'));
-
-                    // 如果检测到“连接失败 / Unauthorized”弹窗（图三），自动触发“重试”
-                    var retryBtn = buttons.find(function(b) {
-                        var t = b.textContent ? b.textContent.trim() : '';
-                        return t === '重试' || t === 'Retry';
-                    });
-                    if (retryBtn && !retryBtn.disabled) {
-                        retryBtn.click();
-                    }
-
-                    // 如果在 setup 或修改后端配置弹窗，且密码已填充或显示连接正常，自动点击“提交”
-                    var submitBtn = buttons.find(function(b) {
-                        var t = b.textContent ? b.textContent.trim() : '';
-                        return t === '提交' || t === 'Submit' || t === '保存' || t === 'Save';
-                    });
-                    if (submitBtn && !submitBtn.disabled) {
-                        submitBtn.click();
-                        // 若位于 #setup 路由，提交后尝试切换到根路径
-                        if (window.location.hash.indexOf('setup') !== -1) {
-                            setTimeout(function() {
-                                if (window.location.hash.indexOf('setup') !== -1) {
-                                    window.location.hash = '#/';
-                                }
-                            }, 500);
-                        }
-                        clearInterval(checkInterval);
-                        return;
-                    }
-
-                    // 若已处于主界面且无报错弹窗，终止轮询
-                    if (window.location.hash.indexOf('setup') === -1 && !document.querySelector('.modal, [role="dialog"]')) {
-                        clearInterval(checkInterval);
-                    }
-                }, 200);
-            })();
-        """.trimIndent()
-        view?.evaluateJavascript(js, null)
-    }
-
-    private fun injectMetaCubeXDAutoConnect(view: WebView?) {
-        val secret = DataStore.clashApiSecret
-        val js = """
-            (function() {
-                var secret = "$secret";
-                var localUrl = "http://127.0.0.1:9090";
-
-                // 1. 同步注入与自愈 Pinia / useLocalStorage 状态
-                try {
-                    var endpointList = JSON.parse(localStorage.getItem("endpointList") || "[]");
-                    if (!Array.isArray(endpointList)) endpointList = [];
-                    var found = false;
-                    for (var i = 0; i < endpointList.length; i++) {
-                        var ep = endpointList[i];
-                        if (ep && (ep.url === localUrl || ep.url === "http://localhost:9090" || ep.url === "http://127.0.0.1:9090/")) {
-                            ep.secret = secret;
-                            ep.url = localUrl;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        endpointList.unshift({
-                            id: "hubox-local",
-                            url: localUrl,
-                            secret: secret
-                        });
-                    }
-                    localStorage.setItem("endpointList", JSON.stringify(endpointList));
-                    localStorage.setItem("selectedEndpoint", JSON.stringify("hubox-local"));
-                    try { window.dispatchEvent(new Event('storage')); } catch (_) {}
-                } catch (_) {}
-
-                // 2. 轮询侦听并自愈 DOM 表单输入框（解决 vue 响应式状态与 setup 页面输入）
-                function setNativeValue(element, value) {
-                    var valueSetter = Object.getOwnPropertyDescriptor(element.__proto__, 'value') ||
-                                      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-                    if (valueSetter && valueSetter.set) {
-                        valueSetter.set.call(element, value);
-                    } else {
-                        element.value = value;
-                    }
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-
-                var checkCount = 0;
-                var maxChecks = 35;
-                var interval = setInterval(function() {
-                    checkCount++;
-                    if (checkCount > maxChecks) {
-                        clearInterval(interval);
-                        return;
-                    }
-
-                    // 查找密码/密钥输入框
-                    var pwInputs = document.querySelectorAll('input[type="password"], input[placeholder*="secret" i], input[placeholder*="密钥"], input[placeholder*="Secret"]');
-                    var needSubmit = false;
-                    pwInputs.forEach(function(inp) {
-                        if (inp && inp.value !== secret) {
-                            setNativeValue(inp, secret);
-                            needSubmit = true;
-                        }
-                    });
-
-                    // 查找后端地址输入框
-                    var urlInputs = document.querySelectorAll('input[placeholder*="http" i], input[placeholder*="后端"], input[placeholder*="Endpoint" i]');
-                    urlInputs.forEach(function(inp) {
-                        if (inp && (!inp.value || inp.value === '')) {
-                            setNativeValue(inp, localUrl);
-                            needSubmit = true;
-                        }
-                    });
-
-                    // 清理过渡报错气泡提示
-                    var alerts = document.querySelectorAll('.alert, [role="alert"], div[class*="error"]');
-                    alerts.forEach(function(el) {
-                        var text = el.innerText || '';
-                        if (text.indexOf('secret 被拒绝') !== -1 || text.indexOf('401') !== -1) {
-                            el.style.display = 'none';
-                        }
-                    });
-
-                    // 如果密码已填充，寻找“连接”或“Connect”按钮自动提交
-                    if (needSubmit || pwInputs.length > 0) {
-                        var buttons = Array.from(document.querySelectorAll('button, a'));
-                        var connectBtn = buttons.find(function(b) {
-                            var text = (b.textContent || '').trim();
-                            return text === '连接' || text === 'Connect' || text === '保存' || text === '确定';
-                        });
-                        if (connectBtn && !connectBtn.disabled) {
-                            connectBtn.click();
-                        }
-                    }
-
-                    // 如果已经成功进入仪表盘概览主页（离开 setup 路由），停止轮询
-                    if (window.location.hash.indexOf('setup') === -1 && window.location.hash.length > 2) {
-                        clearInterval(interval);
-                    }
-                }, 200);
-            })();
-        """.trimIndent()
-        view?.evaluateJavascript(js, null)
-    }
-
     private fun buildEffectiveDashboardUrl(url: String): String {
-        val secret = DataStore.clashApiSecret
-        val normalized = runCatching { DashboardManager.normalizeUrl(url) }.getOrDefault(url)
+        val normalized = runCatching { DashboardManager.normalizeUrl(url) }
+            .getOrElse { DashboardManager.PRESET_YACD_URL }
+        val parsed = normalized.toHttpUrlOrNull()
         return when {
-            normalized.startsWith("https://board.zash.run.place/#/setup") -> DashboardManager.PRESET_ZASHBOARD_URL
-            (normalized.contains("metacubex") || normalized.contains("metacubexd")) && !normalized.contains("hostname=") -> {
+            parsed?.scheme == "https" && parsed.host.equals("board.zash.run.place", ignoreCase = true) &&
+                parsed.encodedPath == "/" && parsed.fragment == "/setup" -> DashboardManager.PRESET_ZASHBOARD_URL
+            parsed?.scheme == "https" && parsed.host.equals("metacubex.github.io", ignoreCase = true) &&
+                !normalized.contains("hostname=") -> {
                 val clean = normalized.trimEnd('/')
+                val secret = java.net.URLEncoder.encode(DataStore.clashApiSecret, Charsets.UTF_8.name())
                 "$clean/#/setup?hostname=127.0.0.1&port=9090&secret=$secret&http=true"
             }
             else -> normalized

@@ -134,7 +134,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     //
 
     var isExpert by configurationStore.boolean(Key.APP_EXPERT)
-    var appTheme by configurationStore.int(Key.APP_THEME) { Theme.LIGHT_GRAY }
+    var appTheme by configurationStore.int(Key.APP_THEME) { Theme.BLUE }
     var useSystemTheme by configurationStore.boolean(Key.USE_SYSTEM_THEME) { false }
     var nightTheme by configurationStore.stringToInt(Key.NIGHT_THEME)
     var appIconMode by configurationStore.stringToInt(Key.APP_ICON_MODE) { 0 }
@@ -154,6 +154,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     var allowAccess by configurationStore.boolean(Key.ALLOW_ACCESS)
     var speedInterval by configurationStore.stringToInt(Key.SPEED_INTERVAL)
+    var batterySaverMode by configurationStore.string(Key.BATTERY_SAVER_MODE) { "balanced" }
     var showGroupInNotification by configurationStore.boolean(Key.SHOW_GROUP_IN_NOTIFICATION)
     var liveUpdateEnabled by configurationStore.boolean(Key.LIVE_UPDATE_ENABLED)
     var liveUpdateShowCapsule by configurationStore.boolean(Key.LIVE_UPDATE_SHOW_CAPSULE) { true }

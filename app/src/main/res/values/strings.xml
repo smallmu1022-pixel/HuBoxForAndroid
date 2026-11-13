@@ -1382,4 +1382,11 @@
     <string name="status_smart_routing">Smart Routing</string>
     <string name="status_global_active">Global Active</string>
     <string name="status_rule_active">By Rules</string>
+
+    <!-- Battery saver mode -->
+    <string name="battery_saver_title">Battery Saver Mode</string>
+    <string name="battery_saver_summary">Adjusts background traffic-stat polling only. VPN tunnel and keepalive behavior are unchanged.</string>
+    <string name="battery_saver_performance">Performance priority</string>
+    <string name="battery_saver_balanced">Smart balance (recommended)</string>
+    <string name="battery_saver_extreme">Maximum power saving</string>
 </resources>

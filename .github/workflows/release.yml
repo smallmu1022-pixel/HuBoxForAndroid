@@ -6,20 +6,64 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release Tag (e.g. v2.3.9)"
+        description: "Release Tag (e.g. v1.0.7)"
         required: true
-        default: "v2.3.9"
+        default: "v1.0.7"
 
 permissions:
   contents: read
 
 jobs:
-  libcore:
-    name: Native Build (LibCore)
+  validate:
+    name: Validate release source and version
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate requested tag matches checked-out source
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          VERSION_NAME=$(sed -n 's/^VERSION_NAME=//p' nb4a.properties | head -n 1)
+          if [ -z "$VERSION_NAME" ]; then
+            echo "::error::VERSION_NAME is missing from nb4a.properties"
+            exit 1
+          fi
+          git fetch --no-tags origin +refs/heads/HuBoxForAndroid:refs/remotes/origin/HuBoxForAndroid
+          if ! git merge-base --is-ancestor HEAD origin/HuBoxForAndroid; then
+            echo "::error::Release source must already be merged into the HuBoxForAndroid default branch."
+            exit 1
+          fi
+          EXPECTED_TAG="v$VERSION_NAME"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "::error::Release tag '$RELEASE_TAG' does not match checked-out app version '$VERSION_NAME' (expected '$EXPECTED_TAG')."
+            exit 1
+          fi
+          echo "version=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  libcore:
+    name: Native Build (LibCore)
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;25.0.8775105"
       - name: Golang Status
         run: find buildScript libcore/*.sh nb4a.properties | xargs cat | sha1sum > golang_status
       - name: Libcore Status
@@ -35,7 +79,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
         with:
-          go-version: ^1.25
+          go-version: 1.26.11
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: ./run lib core
@@ -57,15 +101,24 @@ jobs:
     name: Build OSS APK
     runs-on: ubuntu-latest
     needs:
+      - validate
       - libcore
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;25.0.8775105"
       - name: Download LibCore AAR
         uses: actions/download-artifact@v4
         with:
@@ -84,6 +137,7 @@ jobs:
           key: gradle-oss-${{ hashFiles('**/*.gradle.kts') }}
       - name: Gradle Build
         env:
+          VERSION_NAME: ${{ needs.validate.outputs.version }}
           BUILD_PLUGIN: none
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
@@ -145,9 +199,40 @@ jobs:
             fi
           done
 
+          AAPT=$(find "${ANDROID_HOME}/build-tools" -name aapt | sort -V | tail -n 1)
+          if [ -z "$AAPT" ]; then
+            echo "::error::Android aapt tool was not found."
+            exit 1
+          fi
+          shopt -s nullglob
+          BUILT_APKS=("$APK_DIR"/*.apk)
+          if [ "${#BUILT_APKS[@]}" -ne 4 ]; then
+            echo "::error::Expected exactly four ABI APKs, found ${#BUILT_APKS[@]}."
+            exit 1
+          fi
+          DIST_DIR="$PWD/app/build/outputs/apk/release-distribution"
+          mkdir -p "$DIST_DIR"
+          for apk in "${BUILT_APKS[@]}"; do
+            ACTUAL_VERSION=$("$AAPT" dump badging "$apk" | sed -n "s/^package:.*versionName='\\([^']*\\)'.*/\\1/p" | head -n 1)
+            if [ "$ACTUAL_VERSION" != "$VERSION_NAME" ]; then
+              echo "::error::APK $apk has version '$ACTUAL_VERSION', expected '$VERSION_NAME'."
+              exit 1
+            fi
+            NAME=$(basename "$apk")
+            case "$NAME" in
+              *arm64-v8a*) ABI="arm64-v8a" ;;
+              *armeabi-v7a*) ABI="armeabi-v7a" ;;
+              *x86_64*) ABI="x86_64" ;;
+              *x86*) ABI="x86" ;;
+              *) echo "::error::Cannot determine ABI for $NAME"; exit 1 ;;
+            esac
+            cp "$apk" "$DIST_DIR/HuBox-$VERSION_NAME-$ABI-release.apk"
+          done
+          test "$(find "$DIST_DIR" -maxdepth 1 -name '*.apk' | wc -l)" -eq 4
+
           rm -f release.keystore
 
-          echo "APK=$APK_DIR" >> $GITHUB_ENV
+          echo "APK=$DIST_DIR" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
           name: APKs
@@ -156,12 +241,16 @@ jobs:
   publish:
     name: Publish Release
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - validate
+      - build
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -175,23 +264,28 @@ jobs:
           sha256sum *.apk > sha256sums.txt
           cd ..
           ls -la apks/
-      - name: Sync Release Notes
+      - name: Sync and verify Release Notes
+        env:
+          VERSION_NAME: ${{ needs.validate.outputs.version }}
         run: |
-          if [ -f CHANGELOG.md ]; then
-            awk '/^# HuBox for Android v/{if(found) exit; found=1} found' CHANGELOG.md > RELEASE_NOTES.md
-          fi
+          awk '/^# HuBox for Android v/{if(found) exit; found=1} found' CHANGELOG.md > RELEASE_NOTES.md
+          grep -q "^# HuBox for Android v$VERSION_NAME$" RELEASE_NOTES.md || {
+            echo "::error::Release notes do not start with the requested version $VERSION_NAME."
+            exit 1
+          }
+          test -s RELEASE_NOTES.md
           cat RELEASE_NOTES.md
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: HuBox ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: HuBox ${{ needs.validate.outputs.tag }}
           body_path: RELEASE_NOTES.md
           files: |
             apks/*.apk
             apks/sha256sums.txt
           draft: false
-          prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, 'preview') || contains(github.event.inputs.tag || github.ref_name, 'alpha') || contains(github.event.inputs.tag || github.ref_name, 'beta') }}
-          make_latest: ${{ !(contains(github.event.inputs.tag || github.ref_name, 'preview') || contains(github.event.inputs.tag || github.ref_name, 'alpha') || contains(github.event.inputs.tag || github.ref_name, 'beta')) }}
+          prerelease: ${{ contains(needs.validate.outputs.tag, 'preview') || contains(needs.validate.outputs.tag, 'alpha') || contains(needs.validate.outputs.tag, 'beta') }}
+          make_latest: ${{ !(contains(needs.validate.outputs.tag, 'preview') || contains(needs.validate.outputs.tag, 'alpha') || contains(needs.validate.outputs.tag, 'beta')) }}
           generate_release_notes: false
 

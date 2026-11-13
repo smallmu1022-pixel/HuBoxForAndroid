@@ -4,12 +4,14 @@
         <item name="actionBarStyle">@style/Widget.MaterialComponents.ActionBar.Solid</item>
         <item name="actionModeCloseDrawable">@drawable/ic_navigation_close</item>
         <item name="colorButtonNormal">?colorAccent</item>
-        <item name="android:navigationBarColor">?colorPrimaryDark</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">@bool/hubox_light_system_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/hubox_light_system_bars</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="colorPrimary">@color/material_green_500</item>
-        <item name="colorPrimaryDark">@color/material_green_700</item>
-        <item name="colorAccent">@color/material_green_500</item>
+        <item name="android:windowLightStatusBar">@bool/hubox_light_system_bars</item>
+        <item name="colorPrimary">@color/hubox_blue_primary</item>
+        <item name="colorPrimaryDark">@color/hubox_blue_primary_dark</item>
+        <item name="colorAccent">@color/hubox_blue_accent</item>
 
         <item name="colorMaterial100">@color/material_green_100</item>
         <item name="colorMaterial300">@color/material_green_300</item>
@@ -107,10 +109,12 @@
         <item name="actionBarStyle">@style/Widget.MaterialComponents.ActionBar.Solid</item>
         <item name="actionModeCloseDrawable">@drawable/ic_navigation_close</item>
         <item name="colorButtonNormal">?colorAccent</item>
-        <item name="android:navigationBarColor">?colorPrimaryDark</item>
-        <item name="colorPrimary">@color/material_green_500</item>
-        <item name="colorPrimaryDark">@color/material_green_700</item>
-        <item name="colorAccent">@color/material_green_500</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">@bool/hubox_light_system_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/hubox_light_system_bars</item>
+        <item name="colorPrimary">@color/hubox_blue_primary</item>
+        <item name="colorPrimaryDark">@color/hubox_blue_primary_dark</item>
+        <item name="colorAccent">@color/hubox_blue_accent</item>
 
         <item name="colorMaterial100">@color/material_green_100</item>
         <item name="colorMaterial300">@color/material_green_300</item>
@@ -522,9 +526,9 @@
     </style>
 
     <style name="Theme.SagerNet.Blue" parent="Theme.SagerNet">
-        <item name="colorPrimary">@color/material_blue_500</item>
-        <item name="colorPrimaryDark">@color/material_blue_700</item>
-        <item name="colorAccent">@color/material_blue_accent_200</item>
+        <item name="colorPrimary">@color/hubox_blue_primary</item>
+        <item name="colorPrimaryDark">@color/hubox_blue_primary_dark</item>
+        <item name="colorAccent">@color/hubox_blue_accent</item>
         <item name="colorMaterial100">@color/material_blue_100</item>
         <item name="colorMaterial300">@color/material_blue_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_blue</item>
@@ -685,9 +689,9 @@
     </style>
 
     <style name="Theme.SagerNet.Dialog.Blue" parent="Theme.SagerNet.Dialog">
-        <item name="colorPrimary">@color/material_blue_500</item>
-        <item name="colorPrimaryDark">@color/material_blue_700</item>
-        <item name="colorAccent">@color/material_blue_accent_200</item>
+        <item name="colorPrimary">@color/hubox_blue_primary</item>
+        <item name="colorPrimaryDark">@color/hubox_blue_primary_dark</item>
+        <item name="colorAccent">@color/hubox_blue_accent</item>
         <item name="colorMaterial100">@color/material_blue_100</item>
         <item name="colorMaterial300">@color/material_blue_300</item>
         <item name="cardElevatedSurfaceColor">@color/card_elevated_blue</item>
@@ -853,6 +857,8 @@
         <item name="colorSurface">@color/black</item>
         <item name="cardElevatedSurfaceColor">@color/color_black_theme_card_elevated</item>
         <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:textColorSecondary">@color/color_black_theme_text_secondary</item>
         <item name="android:textColorTertiary">@color/color_black_theme_text_tertiary</item>
         <item name="colorOnSurface">@color/white</item>
@@ -1035,6 +1041,8 @@
         <item name="colorSurface">@color/black</item>
         <item name="cardElevatedSurfaceColor">@color/color_amoled_card_elevated</item>
         <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:textColorSecondary">@color/color_amoled_text_secondary</item>
         <item name="android:textColorTertiary">@color/color_amoled_text_tertiary</item>
         <item name="colorOnSurface">@color/white</item>

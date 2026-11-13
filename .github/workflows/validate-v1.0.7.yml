@@ -1,0 +1,120 @@
+name: HuBox v1.0.7 Validation
+
+on:
+  push:
+    branches:
+      - hubox-1.0.7-candidate
+  pull_request:
+    branches:
+      - HuBoxForAndroid
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hubox-v1.0.7-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  libcore:
+    name: Build and verify LibCore
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate release workflow YAML
+        run: ruby -e 'require "yaml"; YAML.parse_file(".github/workflows/release.yml")'
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.11'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;25.0.8775105"
+      - name: Build native LibCore
+        run: |
+          chmod +x buildScript/lib/core.sh buildScript/lib/core/init.sh buildScript/lib/core/build.sh libcore/init.sh libcore/build.sh
+          ./run lib core
+      - name: Verify LibCore AAR
+        run: |
+          test -s app/libs/libcore.aar
+          unzip -p app/libs/libcore.aar classes.jar > /tmp/libcore-classes.jar
+          unzip -l /tmp/libcore-classes.jar | grep -q 'libcore/Libcore.class'
+          unzip -l /tmp/libcore-classes.jar | grep -q 'go/Seq.class'
+      - name: Upload LibCore AAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: libcore-aar
+          path: app/libs/libcore.aar
+          if-no-files-found: error
+          retention-days: 1
+
+  android-validation:
+    name: Kotlin tests, lint and debug APK
+    runs-on: ubuntu-latest
+    needs: libcore
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.1'
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;25.0.8775105"
+      - name: Download LibCore AAR
+        uses: actions/download-artifact@v4
+        with:
+          name: libcore-aar
+          path: app/libs
+      - name: Prepare local properties
+        run: |
+          echo "sdk.dir=${ANDROID_HOME}" > local.properties
+          echo "ndk.dir=${ANDROID_HOME}/ndk/25.0.8775105" >> local.properties
+      - name: Prepare build assets
+        env:
+          BUILD_PLUGIN: none
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+        run: ./run init action gradle
+      - name: Run unit tests, lint and assemble debug APK
+        env:
+          BUILD_PLUGIN: none
+        run: |
+          ./gradlew --no-daemon testPreviewDebugUnitTest lintPreviewDebug assemblePreviewDebug assemblePreviewRelease
+      - name: Verify APK output
+        run: |
+          DEBUG_APK=$(find app/build/outputs/apk/preview/debug -name '*.apk' -type f | head -n 1)
+          RELEASE_APK=$(find app/build/outputs/apk/preview/release -name '*.apk' -type f | head -n 1)
+          test -n "$DEBUG_APK"
+          test -s "$DEBUG_APK"
+          test -n "$RELEASE_APK"
+          test -s "$RELEASE_APK"
+          echo "Validated Debug APK: $DEBUG_APK"
+          echo "Validated Release APK: $RELEASE_APK"
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hubox-v1.0.7-test-lint-reports
+          path: |
+            app/build/test-results/testPreviewDebugUnitTest/**/*.xml
+            app/build/lint.txt
+            app/build/lint.html
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload validation APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hubox-v1.0.7-validation-apk
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 7

@@ -27,6 +27,7 @@ class TrafficLooper
 
     private var job: Job? = null
     private var lastSpeedSnapshot: SpeedDisplayData? = null
+    @Volatile
     private var wakeupSignal: CompletableDeferred<Unit>? = null
 
     fun triggerWakeup() {
@@ -231,13 +232,17 @@ class TrafficLooper
             val becameForeground = isForegroundUI && !lastForegroundUI
             lastForegroundUI = isForegroundUI
             val isInteractive = SagerNet.power.isInteractive
+            val batterySaverMode = DataStore.batterySaverMode
 
             val proxy = data.proxy
             if (proxy == null) {
                 delay(if (isForegroundUI) baseDelayMs else 3000L)
                 continue
             }
-            if (!proxy.isInitialized()) continue
+            if (!proxy.isInitialized()) {
+                delay(if (isForegroundUI) baseDelayMs else 3000L)
+                continue
+            }
 
             val snapshot = withStateLock {
                 val currentConfig = proxy.safeConfig ?: return@withStateLock null
@@ -411,23 +416,35 @@ class TrafficLooper
             }
 
             // Background low-power battery optimization:
-            // Avoid periodic forced GC which causes CPU page faults and prevents deep sleep.
-            // When screen is off, suspend polling up to 5 minutes to let SoC enter Doze/C-states;
-            // when screen turns on, triggerWakeup() wakes this coroutine immediately.
+            // Keep foreground statistics responsive; only background polling is throttled.
+            // When screen turns on, triggerWakeup() wakes this coroutine immediately.
             val nextDelay = when {
                 isForegroundUI -> baseDelayMs
-                !isInteractive -> if (DataStore.performancePriorityMode) 60000L else 300000L
-                data.notification?.listenPostSpeed == true -> if (DataStore.performancePriorityMode) 3000L else 6000L
-                else -> if (DataStore.performancePriorityMode) 5000L else 15000L
+                !isInteractive -> when (batterySaverMode) {
+                    "performance" -> 60000L
+                    "extreme" -> 600000L
+                    else -> 300000L
+                }
+                data.notification?.listenPostSpeed == true -> when (batterySaverMode) {
+                    "performance" -> 3000L
+                    "extreme" -> 15000L
+                    else -> 6000L
+                }
+                else -> when (batterySaverMode) {
+                    "performance" -> 5000L
+                    "extreme" -> 30000L
+                    else -> 15000L
+                }
             }
             lastDelayMs = nextDelay
-            withTimeoutOrNull(nextDelay) {
-                val deferred = CompletableDeferred<Unit>().also { wakeupSignal = it }
-                try {
-                    deferred.await()
-                } finally {
-                    wakeupSignal = null
-                }
+            val deferred = CompletableDeferred<Unit>()
+            wakeupSignal = deferred
+            try {
+                // Close the race where SCREEN_ON arrives just before the deferred is installed.
+                if (!isInteractive && SagerNet.power.isInteractive) deferred.complete(Unit)
+                withTimeoutOrNull(nextDelay) { deferred.await() }
+            } finally {
+                if (wakeupSignal === deferred) wakeupSignal = null
             }
         }
     }
