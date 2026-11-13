@@ -6,7 +6,7 @@ on:
       - hubox-1.0.7-candidate
   pull_request:
     branches:
-      - hubox-1.0.7-candidate
+      - HuBoxForAndroid
 
 permissions:
   contents: read
