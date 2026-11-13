@@ -79,9 +79,11 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
         mWebView.settings.apply {
             domStorageEnabled = true
             javaScriptEnabled = true
-            allowFileAccess = true
+            allowFileAccess = false
+            allowContentAccess = false
             // 允许 HTTPS 外部面板（如 https://board.zash.run.place/）安全请求本地 HTTP Clash API（http://127.0.0.1:9090）
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            // HTTPS dashboards may use the loopback API, but must not load arbitrary insecure origins.
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
         }
         mWebView.webViewClient = object : WebViewClient() {
@@ -123,11 +125,11 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                if (url != null) {
-                    if (url.contains("zash") || url.contains("run.place") || url.contains("board")) {
-                        injectZashboardAutoConnect(view)
-                    } else if (url.contains("metacubex") || url.contains("metacubexd")) {
-                        injectMetaCubeXDAutoConnect(view)
+                val pageUrl = url?.toHttpUrlOrNull()
+                if (pageUrl?.scheme == "https") {
+                    when (pageUrl.host.lowercase(java.util.Locale.ROOT)) {
+                        "board.zash.run.place" -> injectZashboardAutoConnect(view)
+                        "metacubex.github.io" -> injectMetaCubeXDAutoConnect(view)
                     }
                 }
             }
@@ -156,10 +158,10 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
     }
 
     private fun injectZashboardAutoConnect(view: WebView?) {
-        val secret = DataStore.clashApiSecret
+        val secret = org.json.JSONObject.quote(DataStore.clashApiSecret)
         val js = """
             (function() {
-                var secret = "$secret";
+                var secret = $secret;
                 var listKey = "setup/api-list";
                 var activeKey = "setup/active-uuid";
 
@@ -274,10 +276,10 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
     }
 
     private fun injectMetaCubeXDAutoConnect(view: WebView?) {
-        val secret = DataStore.clashApiSecret
+        val secret = org.json.JSONObject.quote(DataStore.clashApiSecret)
         val js = """
             (function() {
-                var secret = "$secret";
+                var secret = $secret;
                 var localUrl = "http://127.0.0.1:9090";
 
                 // 1. 同步注入与自愈 Pinia / useLocalStorage 状态
@@ -379,12 +381,16 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
     }
 
     private fun buildEffectiveDashboardUrl(url: String): String {
-        val secret = DataStore.clashApiSecret
-        val normalized = runCatching { DashboardManager.normalizeUrl(url) }.getOrDefault(url)
+        val normalized = runCatching { DashboardManager.normalizeUrl(url) }
+            .getOrElse { DashboardManager.PRESET_YACD_URL }
+        val parsed = normalized.toHttpUrlOrNull()
         return when {
-            normalized.startsWith("https://board.zash.run.place/#/setup") -> DashboardManager.PRESET_ZASHBOARD_URL
-            (normalized.contains("metacubex") || normalized.contains("metacubexd")) && !normalized.contains("hostname=") -> {
+            parsed?.scheme == "https" && parsed.host.equals("board.zash.run.place", ignoreCase = true) &&
+                parsed.encodedPath == "/" && parsed.fragment == "/setup" -> DashboardManager.PRESET_ZASHBOARD_URL
+            parsed?.scheme == "https" && parsed.host.equals("metacubex.github.io", ignoreCase = true) &&
+                !normalized.contains("hostname=") -> {
                 val clean = normalized.trimEnd('/')
+                val secret = java.net.URLEncoder.encode(DataStore.clashApiSecret, Charsets.UTF_8.name())
                 "$clean/#/setup?hostname=127.0.0.1&port=9090&secret=$secret&http=true"
             }
             else -> normalized

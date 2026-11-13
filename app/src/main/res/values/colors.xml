@@ -307,13 +307,18 @@
     <color name="spinner_dropdown_stroke">#CBD5E1</color>
     <color name="spinner_dropdown_arrow">#64748B</color>
 
+    <!-- HuBox blue-white theme palette -->
+    <color name="hubox_blue_primary">#2864DC</color>
+    <color name="hubox_blue_primary_dark">#1F4FB8</color>
+    <color name="hubox_blue_accent">#4B83F0</color>
+
     <!-- Material Design 3 全局色彩与层级系统 -->
-    <color name="md3_background">#F4F5F7</color>
+    <color name="md3_background">#F3F7FF</color>
     <color name="md3_surface">#FFFFFF</color>
-    <color name="md3_text_primary">#1C1B1F</color>
-    <color name="md3_text_secondary">#49454F</color>
-    <color name="md3_top_app_bar">#FAFAFA</color>
-    <color name="nav_icon_unselected">#757575</color>
+    <color name="md3_text_primary">#17233B</color>
+    <color name="md3_text_secondary">#52627A</color>
+    <color name="md3_top_app_bar">#FFFFFF</color>
+    <color name="nav_icon_unselected">#60718C</color>
     <color name="hubox_drawer_action_fill">#3664E8</color>
     <color name="hubox_drawer_action_text">#FFFFFF</color>
 
