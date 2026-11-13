@@ -165,8 +165,7 @@ class WebDAVSettingsActivity : ThemedActivity() {
                     // 如果认证成功，再测试目录操作
                     val path = (DataStore.webdavPath ?: "").trim('/')
                     if (path.isNotBlank()) {
-                        val baseHttpUrl = server.toHttpUrlOrNull()
-                            ?: throw Exception(getString(R.string.webdav_server_not_found))
+                        val baseHttpUrl = io.nekohasekai.sagernet.utils.WebDAVSecurity.parseHttpsUrl(server)
 
                         val dirUrl = baseHttpUrl.newBuilder().apply {
                             path.split('/').filter { it.isNotEmpty() }.forEach { segment ->
