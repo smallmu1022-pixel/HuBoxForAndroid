@@ -257,7 +257,6 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         401 -> throw Exception("Authentication failed")
                         else -> {
                             if (!response.isSuccessful) {
-                                val errorBody = response.body?.string()
                                 Logs.e("WebDAV backup - PROPFIND failed with HTTP ${response.code}")
                                 throw Exception("Failed to check directory (${response.code}): ${response.message}")
                             }
@@ -279,7 +278,6 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
                     client.newCall(mkcolRequest).execute().use { response ->
                         if (!response.isSuccessful) {
-                            val errorBody = response.body?.string()
                             Logs.e("WebDAV backup - MKCOL failed with HTTP ${response.code}")
                             throw Exception("Failed to create directory (${response.code}): ${response.message}")
                         }
@@ -300,7 +298,6 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
                 client.newCall(putRequest).execute().use { response ->
                     if (!response.isSuccessful) {
-                        val errorBody = response.body?.string()
                         Logs.e("WebDAV backup - PUT failed with HTTP ${response.code}")
                         throw Exception("Upload failed (${response.code}): ${response.message}")
                     }
@@ -377,7 +374,6 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 // 获取最新的备份文件名
                 val latestBackup = client.newCall(propfindRequest).execute().use { response ->
                     if (!response.isSuccessful && response.code != 207) {
-                        val errorBody = response.body?.string()
                         Logs.e("WebDAV restore - PROPFIND failed with HTTP ${response.code}")
                         throw Exception("Failed to list directory: ${response.message}")
                     }
@@ -431,7 +427,6 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
                 val content = client.newCall(getRequest).execute().use { response ->
                     if (!response.isSuccessful) {
-                        val errorBody = response.body?.string()
                         Logs.e("WebDAV restore - GET failed with HTTP ${response.code}")
                         throw Exception("Download failed (${response.code}): ${response.message}")
                     }
