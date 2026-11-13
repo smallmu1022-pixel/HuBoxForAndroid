@@ -1229,9 +1229,13 @@
     <string name="notification_switch">切换…</string>
     <string name="notification_switching">切换中…</string>
     <string name="settings_appearance">外观</string>
-    <string name="settings_appearance_sum">主题、界面与字体大小、语言、通知</string>
-    <string name="ui_scale_settings_title">界面与字体大小</string>
-    <string name="ui_scale_settings_summary">调节全局界面与字体比例、忽略系统大字体、分区自定义按钮/菜单/卡片大小</string>
+    <string name="settings_appearance_sum">主题、语言、通知</string>
+    <string name="home_background_title">主界面背景图</string>
+    <string name="home_background_not_set">未设置</string>
+    <string name="home_background_set">已设置自定义图片</string>
+    <string name="home_background_clear">清除主界面背景图</string>
+    <string name="home_background_saved">背景图已更新</string>
+    <string name="home_background_invalid">这张图片无法使用</string>
     <string name="asset_set_active">设为生效</string>
     <string name="asset_active_badge">使用中</string>
     <string name="asset_set_active_success">已将 %1$s 设为当前生效数据库</string>
