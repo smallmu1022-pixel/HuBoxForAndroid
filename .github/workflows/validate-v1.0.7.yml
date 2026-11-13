@@ -33,7 +33,9 @@ jobs:
       - name: Install Android NDK
         run: sdkmanager --install "ndk;25.0.8775105"
       - name: Build native LibCore
-        run: ./run lib core
+        run: |
+          chmod +x buildScript/lib/core.sh buildScript/lib/core/init.sh buildScript/lib/core/build.sh libcore/init.sh libcore/build.sh
+          ./run lib core
       - name: Verify LibCore AAR
         run: |
           test -s app/libs/libcore.aar
