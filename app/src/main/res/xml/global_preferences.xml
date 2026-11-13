@@ -5,13 +5,6 @@
     <PreferenceCategory app:title="@string/settings_group_common">
 
         <Preference
-            app:icon="@drawable/ic_baseline_tune_24"
-            app:key="homeCustomize"
-            app:summary="@string/home_customize_summary"
-            app:title="@string/home_customize_title"
-            app:widgetLayout="@layout/preference_widget_chevron" />
-
-        <Preference
             app:fragment="io.nekohasekai.sagernet.ui.AppearanceSettingsFragment"
             app:icon="@drawable/ic_line_eye_24"
             app:key="screenUI"

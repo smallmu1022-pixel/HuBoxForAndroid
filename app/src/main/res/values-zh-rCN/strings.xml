@@ -1263,7 +1263,7 @@
     <string name="settings_cat_basic">基础体验</string>
     <string name="settings_cat_core_network">核心引擎与网络</string>
     <string name="settings_cat_advanced">进阶与诊断</string>
-    <string name="settings_ui_summary">外观、主题、卡片样式、语言与触觉反馈</string>
+    <string name="settings_ui_summary">外观、主题、卡片样式与语言</string>
     <string name="settings_vpn_summary">自动连接、分应用代理、绕过 LAN、严格路由、MTU</string>
     <string name="settings_mode_summary">运行模式、混合入站、代理端口、认证、局域网共享</string>
     <string name="settings_core_summary">智能分流地区、流量探测、IPv6 策略、路由规则提供商与自动更新</string>
