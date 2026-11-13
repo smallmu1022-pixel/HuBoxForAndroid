@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Validate requested tag matches checked-out source
         id: version
         env:
@@ -31,6 +33,11 @@ jobs:
           VERSION_NAME=$(sed -n 's/^VERSION_NAME=//p' nb4a.properties | head -n 1)
           if [ -z "$VERSION_NAME" ]; then
             echo "::error::VERSION_NAME is missing from nb4a.properties"
+            exit 1
+          fi
+          git fetch --no-tags origin +refs/heads/HuBoxForAndroid:refs/remotes/origin/HuBoxForAndroid
+          if ! git merge-base --is-ancestor HEAD origin/HuBoxForAndroid; then
+            echo "::error::Release source must already be merged into the HuBoxForAndroid default branch."
             exit 1
           fi
           EXPECTED_TAG="v$VERSION_NAME"
