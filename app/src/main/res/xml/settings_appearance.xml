@@ -188,17 +188,4 @@
             app:title="@string/notification_permission" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="@string/cag_misc">
-        <SwitchPreferenceCompat
-            app:icon="@drawable/solar_slider_minimalistic_horizontal_linear"
-            app:key="showBottomBar"
-            app:title="@string/show_bottom_bar" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:icon="@drawable/solar_smartphone_vibration_linear"
-            app:key="hapticFeedback"
-            app:title="@string/haptic_feedback"
-            app:summary="@string/haptic_feedback_summary" />
-    </PreferenceCategory>
-
 </PreferenceScreen>
