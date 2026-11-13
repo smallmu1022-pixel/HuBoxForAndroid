@@ -102,7 +102,6 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     var appTLSVersion by configurationStore.string(Key.APP_TLS_VERSION)
     var enableClashAPI by configurationStore.boolean(Key.ENABLE_CLASH_API) { true }
-    var showBottomBar by configurationStore.boolean(Key.SHOW_BOTTOM_BAR)
     var confirmProfileDelete by configurationStore.boolean(Key.CONFIRM_PROFILE_DELETE) { true }
     var groupLayoutMode by configurationStore.stringToInt(Key.GROUP_LAYOUT_MODE) { 0 }
     var profileCardStyle by configurationStore.stringToInt(Key.PROFILE_CARD_STYLE) { 0 }
@@ -116,7 +115,6 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     /** HuBox v1.1.0 glass palette: ocean / mint / grape / coral / custom. */
     var themePalette by configurationStore.string(Key.THEME_PALETTE) { "ocean" }
-    var hapticFeedback by configurationStore.boolean(Key.HAPTIC_FEEDBACK) { true }
     var showAllGroupsTab by configurationStore.boolean(Key.SHOW_ALL_GROUPS_TAB) { false }
     var allGroupsOrder by configurationStore.int(Key.ALL_GROUPS_ORDER) { GroupOrder.ORIGIN }
 
@@ -329,7 +327,6 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var bypass by configurationStore.boolean(Key.BYPASS_MODE) { true }
     var individual by configurationStore.string(Key.INDIVIDUAL)
     var showDirectSpeed by configurationStore.boolean(Key.SHOW_DIRECT_SPEED) { true }
-    var showLandingIp by configurationStore.boolean(Key.SHOW_LANDING_IP) { true }
     var hideLandingIpAddress by configurationStore.boolean("hide_landing_ip_address") { false }
 
     var uiIgnoreSystemFontScale by configurationStore.boolean(Key.UI_IGNORE_SYSTEM_FONT_SCALE) { false }

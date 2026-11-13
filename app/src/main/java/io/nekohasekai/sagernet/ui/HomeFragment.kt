@@ -7,7 +7,6 @@ import android.graphics.PorterDuff
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.format.Formatter
-import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
@@ -129,9 +128,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         modulesContainer = view.findViewById(R.id.home_modules)
 
         view.findViewById<View>(R.id.connect_button).setOnClickListener {
-            if (DataStore.hapticFeedback) {
-                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-            }
             if (DataStore.serviceState.canStop) {
                 SagerNet.stopService()
             } else {
@@ -193,7 +189,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         if (DataStore.serviceState.canStop) {
             runCatching { SagerNet.reloadService() }
         }
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
 
     private fun openCustomize() {

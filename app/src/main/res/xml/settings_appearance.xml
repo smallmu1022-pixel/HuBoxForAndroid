@@ -63,13 +63,6 @@
             app:title="@string/compact_profile_rows" />
         <SwitchPreferenceCompat
             app:defaultValue="true"
-            app:icon="@drawable/solar_earth_linear"
-            app:key="showLandingIp"
-            app:summary="@string/show_landing_ip_sum"
-            app:title="@string/show_landing_ip"
-            app:useSimpleSummaryProvider="true" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
             app:icon="@drawable/ic_file_cloud_queue"
             app:key="show_subscription_info_card"
             app:summary="@string/show_subscription_info_card_summary"
