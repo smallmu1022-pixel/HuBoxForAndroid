@@ -56,6 +56,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private lateinit var modulesContainer: LinearLayout
 
     private var arcAnimator: ObjectAnimator? = null
+    private var arcDurationMs: Long = 0L
+
+    // Halo ring rotation: brisk while connecting, a slow ambient spin once
+    // connected (single small view, GPU-cheap, no per-frame work on CPU).
+    private val ARC_CONNECTING_MS = 1100L
+    private val ARC_CONNECTED_MS = 6000L
     private var sessionJob: Job? = null
     private var sessionInitRunning = false
     private var sessionTx: Long = 0L
@@ -241,8 +247,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 ).apply { shape = GradientDrawable.OVAL }
                 connectHalo.setImageResource(R.drawable.ic_halo_white)
                 connectHalo.clearColorFilter()
-                stopArcAnimation()
-                connectArc.visibility = View.GONE
+                connectArc.visibility = View.VISIBLE
+                startArcAnimation(ARC_CONNECTED_MS)
                 stateText.text = getString(R.string.home_status_connected)
                 stateHint.text = getString(R.string.home_action_disconnect)
                 ensureSessionStarted()
@@ -257,7 +263,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 connectHalo.setImageResource(R.drawable.ic_halo_white)
                 connectHalo.clearColorFilter()
                 connectArc.visibility = View.VISIBLE
-                startArcAnimation()
+                startArcAnimation(ARC_CONNECTING_MS)
                 stateText.text = getString(R.string.connecting)
                 stateHint.text = getString(R.string.home_tap_to_cancel)
             }
@@ -307,10 +313,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         connectHalo.setColorFilter(Palette.primary(ctx), PorterDuff.Mode.SRC_IN)
     }
 
-    private fun startArcAnimation() {
-        if (arcAnimator?.isRunning == true) return
+    private fun startArcAnimation(durationMs: Long) {
+        if (arcAnimator?.isRunning == true && arcDurationMs == durationMs) return
+        stopArcAnimation()
+        arcDurationMs = durationMs
         arcAnimator = ObjectAnimator.ofFloat(connectArc, View.ROTATION, 0f, 360f).apply {
-            duration = 1100
+            duration = durationMs
             repeatCount = ObjectAnimator.INFINITE
             interpolator = LinearInterpolator()
             start()
@@ -320,6 +328,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private fun stopArcAnimation() {
         arcAnimator?.cancel()
         arcAnimator = null
+        arcDurationMs = 0L
         if (::connectArc.isInitialized) connectArc.rotation = 0f
     }
 

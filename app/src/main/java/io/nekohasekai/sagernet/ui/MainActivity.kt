@@ -19,6 +19,7 @@ import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
+import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceDataStore
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -530,12 +531,67 @@ class MainActivity : ThemedActivity(),
 
     private var syncingBottomNav = false
 
+    // HuBox v1.1.1: the four bottom-nav pages stay alive once created and are
+    // switched with show/hide instead of destroy-and-rebuild, which removes
+    // the visible stutter on every tab change. Hidden pages are capped at
+    // STARTED, so their onPause/onResume semantics (timers, refresh on
+    // return) behave exactly as they did with replace().
+    private val tabTags = mapOf(
+        R.id.nav_home to "tab_home",
+        R.id.nav_configuration to "tab_configuration",
+        R.id.nav_tools to "tab_tools",
+        R.id.nav_settings to "tab_settings",
+    )
+
+    private fun createTabFragment(@IdRes id: Int): ToolbarFragment = when (id) {
+        R.id.nav_home -> HomeFragment()
+        R.id.nav_configuration -> ConfigurationFragment()
+        R.id.nav_tools -> ToolsFragment()
+        else -> SettingsFragment()
+    }
+
+    private fun displayTab(@IdRes id: Int) {
+        val tag = tabTags.getValue(id)
+        val target = supportFragmentManager.findFragmentByTag(tag) as? ToolbarFragment
+            ?: createTabFragment(id)
+        val tx = supportFragmentManager.beginTransaction()
+        for (other in supportFragmentManager.fragments) {
+            if (other.id != R.id.fragment_holder || other === target) continue
+            if (other.tag in tabTags.values) {
+                tx.hide(other)
+                tx.setMaxLifecycle(other, Lifecycle.State.STARTED)
+            } else {
+                tx.remove(other)
+            }
+        }
+        if (target.isAdded) {
+            tx.show(target)
+        } else {
+            tx.add(R.id.fragment_holder, target, tag)
+        }
+        tx.setMaxLifecycle(target, Lifecycle.State.RESUMED)
+        tx.commitAllowingStateLoss()
+        currentMainFragment = target
+        syncMainControls(target, showWhenConnected = false, animate = true)
+    }
+
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
         currentMainFragment = fragment
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_holder, fragment)
-            .commitAllowingStateLoss()
+        val tx = supportFragmentManager.beginTransaction()
+        // Keep cached tab pages alive underneath non-tab screens.
+        for (other in supportFragmentManager.fragments) {
+            if (other.id != R.id.fragment_holder) continue
+            if (other.tag in tabTags.values) {
+                tx.hide(other)
+                tx.setMaxLifecycle(other, Lifecycle.State.STARTED)
+            } else {
+                tx.remove(other)
+            }
+        }
+        tx.add(R.id.fragment_holder, fragment)
+        tx.setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
+        tx.commitAllowingStateLoss()
         syncMainControls(fragment, showWhenConnected = false, animate = true)
     }
 
@@ -582,24 +638,20 @@ class MainActivity : ThemedActivity(),
 
     fun displayFragmentWithId(@IdRes id: Int): Boolean {
         when (id) {
-            R.id.nav_home -> {
-                displayFragment(HomeFragment())
-            }
+            R.id.nav_home -> displayTab(R.id.nav_home)
 
-            R.id.nav_configuration -> {
-                displayFragment(ConfigurationFragment())
-            }
+            R.id.nav_configuration -> displayTab(R.id.nav_configuration)
 
             R.id.nav_group -> displayFragment(GroupFragment())
             R.id.nav_route -> displayFragment(RouteFragment())
-            R.id.nav_settings -> displayFragment(SettingsFragment())
+            R.id.nav_settings -> displayTab(R.id.nav_settings)
             R.id.nav_dashboard -> displayFragment(WebviewFragment())
             R.id.nav_diagnostics -> displayFragment(DiagnosticsFragment())
             R.id.nav_apps -> {
                 startActivity(Intent(this, AppManagerActivity::class.java))
                 return false
             }
-            R.id.nav_tools -> displayFragment(ToolsFragment())
+            R.id.nav_tools -> displayTab(R.id.nav_tools)
             R.id.nav_logcat -> displayFragment(LogcatFragment())
 
             R.id.nav_about -> displayFragment(AboutFragment())

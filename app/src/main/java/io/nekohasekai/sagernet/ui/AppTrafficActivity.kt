@@ -1,5 +1,7 @@
 package io.nekohasekai.sagernet.ui
 
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.format.Formatter
@@ -114,19 +116,46 @@ class AppTrafficActivity : ThemedActivity() {
         val pm = packageManager
         return byKey.entries
             .map { (key, acc) ->
-                var label = key
-                var icon: Drawable? = null
-                if (key.contains('.') && !key.contains(' ')) {
-                    runCatching {
-                        val info = pm.getApplicationInfo(key, 0)
-                        label = pm.getApplicationLabel(info).toString()
-                        icon = pm.getApplicationIcon(info)
-                    }
-                }
+                val (label, icon) = resolveApp(pm, key)
                 AppTraffic(key, label, icon, acc.upload, acc.download)
             }
             .filter { it.total > 0 }
             .sortedByDescending { it.total }
+    }
+
+    private var installedAppsCache: List<ApplicationInfo>? = null
+
+    /**
+     * Resolve a connection's process string to a display label and the real
+     * app icon. The process field may be a plain package name, a package
+     * with a sub-process suffix ("pkg:push"), or a bare process/label
+     * string, so resolution tries the package directly first, then matches
+     * process name, then the app label across installed packages. Host-keyed
+     * rows (no process info) keep the raw key and the placeholder icon.
+     * Runs on the IO thread from fetchRanking.
+     */
+    private fun resolveApp(pm: PackageManager, rawKey: String): Pair<String, Drawable?> {
+        val pkg = rawKey.substringBefore(':').trim()
+        if (pkg.contains('.') && !pkg.contains(' ')) {
+            runCatching {
+                val info = pm.getApplicationInfo(pkg, 0)
+                return pm.getApplicationLabel(info).toString() to pm.getApplicationIcon(info)
+            }
+        }
+        val installed = installedAppsCache
+            ?: runCatching { pm.getInstalledApplications(0) }.getOrDefault(emptyList())
+                .also { installedAppsCache = it }
+        for (info in installed) {
+            if (info.processName == rawKey || info.packageName == pkg) {
+                return pm.getApplicationLabel(info).toString() to pm.getApplicationIcon(info)
+            }
+        }
+        for (info in installed) {
+            if (pm.getApplicationLabel(info).toString() == rawKey) {
+                return rawKey to pm.getApplicationIcon(info)
+            }
+        }
+        return rawKey to null
     }
 
     private inner class TrafficAdapter : RecyclerView.Adapter<TrafficAdapter.Holder>() {

@@ -40,6 +40,9 @@ class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
         binding.toolTraffic.setOnClickListener {
             startActivity(Intent(requireContext(), AppTrafficActivity::class.java))
         }
+        binding.toolLog.setOnClickListener {
+            mainActivity?.displayFragmentWithId(R.id.nav_logcat)
+        }
 
         binding.toolsPager.adapter = ToolsAdapter(tools)
 
