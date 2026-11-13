@@ -1445,4 +1445,7 @@
     <string name="app_traffic_hint">Live traffic by app, aggregated from current connections</string>
     <string name="app_traffic_empty">No connection data yet. Connect first and make sure the Clash API is enabled.</string>
     <string name="app_traffic_total">Total</string>
+    <string name="settings_group_common">Common</string>
+    <string name="settings_group_network">Network</string>
+    <string name="settings_group_advanced">Advanced</string>
 </resources>
