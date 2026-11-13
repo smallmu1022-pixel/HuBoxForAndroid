@@ -1369,8 +1369,6 @@ class ConfigurationFragment @JvmOverloads constructor(
         ad.isReorderMode = true
 
         currentFrag.view?.findViewById<View>(R.id.btn_save_reorder)?.isVisible = true
-        (activity as? MainActivity)?.binding?.fab?.hide()
-        (activity as? MainActivity)?.binding?.fabProgress?.visibility = View.INVISIBLE
         ad.notifyDataSetChanged()
         updateToolbarForReorderMode()
     }
@@ -1427,7 +1425,6 @@ class ConfigurationFragment @JvmOverloads constructor(
 
         val currentFrag = getCurrentGroupFragment()
         currentFrag?.view?.findViewById<View>(R.id.btn_save_reorder)?.isGone = true
-        (activity as? MainActivity)?.binding?.fab?.show()
 
         currentFrag?.adapter?.let { ad ->
             ad.isReorderMode = false
@@ -2198,7 +2195,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                     val rxBytes = sample.downloadBitsPerSecond / 8
                     val txBytes = sample.uploadBitsPerSecond / 8
                     runOnMainDispatcher {
-                        (activity as? MainActivity)?.binding?.stats?.updateSpeed(txBytes, rxBytes)
                         try {
                             (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                                 io.nekohasekai.sagernet.aidl.SpeedDisplayData(
@@ -2269,7 +2265,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             } finally {
                 runOnMainDispatcher {
-                    (activity as? MainActivity)?.binding?.stats?.updateSpeed(0, 0)
                     try {
                         (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                             io.nekohasekai.sagernet.aidl.SpeedDisplayData(0, 0, 0, 0, 0, 0)
@@ -2351,7 +2346,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                     val rxBytes = sample.downloadBitsPerSecond / 8
                     val txBytes = sample.uploadBitsPerSecond / 8
                     runOnMainDispatcher {
-                        (activity as? MainActivity)?.binding?.stats?.updateSpeed(txBytes, rxBytes)
                         try {
                             (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                                 io.nekohasekai.sagernet.aidl.SpeedDisplayData(
@@ -2426,7 +2420,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             } finally {
                 runOnMainDispatcher {
-                    (activity as? MainActivity)?.binding?.stats?.updateSpeed(0, 0)
                     try {
                         (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                             io.nekohasekai.sagernet.aidl.SpeedDisplayData(0, 0, 0, 0, 0, 0)
