@@ -781,6 +781,19 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
     }
 
+    // HuBox v1.1.2: update every subscription group (menu: update all subscriptions).
+    private fun updateAllSubscriptionGroups() {
+        runOnLifecycleDispatcher {
+            val subGroups = SagerDatabase.groupDao.allGroups().filter { it.type == GroupType.SUBSCRIPTION }
+            if (subGroups.isEmpty()) {
+                safeSnackbar("没有可更新的订阅分组")
+            } else {
+                subGroups.forEach { GroupUpdater.startUpdate(it, true) }
+                safeSnackbar("正在更新全部 ${subGroups.size} 个订阅组...")
+            }
+        }
+    }
+
     private fun updateToolbarMenuTitles() {
         if (!isToolbarInitialized) return
         val isAll = isCurrentAllGroups()
@@ -1767,15 +1780,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             R.id.action_update_subscription -> {
                 val isAll = isCurrentAllGroups()
                 if (isAll) {
-                    runOnLifecycleDispatcher {
-                        val subGroups = SagerDatabase.groupDao.allGroups().filter { it.type == GroupType.SUBSCRIPTION }
-                        if (subGroups.isEmpty()) {
-                            safeSnackbar("没有可更新的订阅分组")
-                        } else {
-                            subGroups.forEach { GroupUpdater.startUpdate(it, true) }
-                            safeSnackbar("正在更新全部 ${subGroups.size} 个订阅组...")
-                        }
-                    }
+                    updateAllSubscriptionGroups()
                 } else {
                     val group = DataStore.currentGroup()
                     if (group.type != GroupType.SUBSCRIPTION) {
@@ -1787,6 +1792,10 @@ class ConfigurationFragment @JvmOverloads constructor(
                         }
                     }
                 }
+            }
+
+            R.id.action_update_all_subscriptions -> {
+                updateAllSubscriptionGroups()
             }
 
             R.id.action_clear_traffic_statistics -> {
