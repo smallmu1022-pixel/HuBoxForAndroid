@@ -3,11 +3,14 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- Rotating arc shown around the connect button while connecting -->
+    <!-- Rotating indicator inside the connect button while connecting.
+         HuBox v1.1.3: ring shrunk well inside the disc (radius 20.5 -> 15.5
+         of 24), bar ~2dp thick (0.8 units) and only ~2dp long on screen
+         (2.9 degrees of arc) — a small dot orbiting inside the button. -->
     <path
-        android:pathData="M24,3.5 A20.5,20.5 0 0 1 40.8,12.2"
+        android:pathData="M24,8.5 A15.5,15.5 0 0 1 24.77,8.52"
         android:fillColor="#00000000"
-        android:strokeWidth="3"
+        android:strokeWidth="0.8"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round" />
 </vector>

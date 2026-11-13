@@ -162,7 +162,6 @@ import java.util.zip.ZipInputStream
 import kotlin.collections.set
 import androidx.appcompat.app.AlertDialog
 import io.nekohasekai.sagernet.database.SubscriptionBean
-import io.nekohasekai.sagernet.utils.UiScaleManager
 import kotlin.math.abs
 
 class ConfigurationFragment @JvmOverloads constructor(
@@ -623,9 +622,10 @@ class ConfigurationFragment @JvmOverloads constructor(
         toolbar.clipChildren = false
         toolbar.clipToPadding = false
 
-        val titleFactor = UiScaleManager.toolbarTitleFactor()
-        val iconFactor = UiScaleManager.toolbarIconFactor()
-        val tabFactor = UiScaleManager.tabBarFactor()
+        // HuBox v1.1.3: UI scaling removed; sizes follow the system.
+        val titleFactor = 1.0f
+        val iconFactor = 1.0f
+        val tabFactor = 1.0f
         val effectiveFactor = maxOf(tabFactor, iconFactor)
 
         val toolbarContainer = view?.findViewById<View>(R.id.toolbar_container)
@@ -703,7 +703,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     private fun applyActionMenuSpacing(menuView: ActionMenuView) {
         if (isAdjustingMenuSpacing) return
-        val iconFactor = UiScaleManager.toolbarIconFactor()
+        val iconFactor = 1.0f
         // HuBox V1.0.1: each top-bar action gets a >=48dp touch target, and icons are spaced wider apart
         val minW = (dp2px(48) * iconFactor).toInt().coerceIn(dp2px(48), dp2px(56))
         val gap = dp2px(8)
@@ -1115,7 +1115,7 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
         styleGroupTabLayout()
 
-        val tabFactor = UiScaleManager.tabBarFactor()
+        val tabFactor = 1.0f
         val scaledTabHeight = (dp2px(38) * tabFactor).toInt().coerceIn(dp2px(26), dp2px(54)) + dp2px(10)
         groupTabContainer?.layoutParams = groupTabContainer?.layoutParams?.apply {
             if (height != scaledTabHeight) {
@@ -4396,7 +4396,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             private val baseTrafficTextSizePx = trafficText.textSize
 
             private fun applyCardScale() {
-                val factor = UiScaleManager.profileCardFactor()
+                val factor = 1.0f
                 profileName.setTextSize(TypedValue.COMPLEX_UNIT_PX, baseNameTextSizePx * factor)
                 profileType.setTextSize(TypedValue.COMPLEX_UNIT_PX, baseTypeTextSizePx * factor)
                 profileAddress.setTextSize(TypedValue.COMPLEX_UNIT_PX, baseAddressTextSizePx * factor)

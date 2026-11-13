@@ -876,8 +876,12 @@
     <string name="route_network_type_other">其他</string>
     <string name="route_rule_network_is_expensive">計費網路</string>
     <string name="route_rule_advanced_count">進階 (已設定%1$d項)</string>
-    <string name="ui_scale_settings_title">介面與字體大小</string>
-    <string name="ui_scale_settings_summary">調節全域介面與字體比例、忽略系統大字體、分區自訂按鈕/選單/卡片大小</string>
+    <string name="home_background_title">主畫面背景圖</string>
+    <string name="home_background_not_set">未設定</string>
+    <string name="home_background_set">已設定自訂圖片</string>
+    <string name="home_background_clear">清除主畫面背景圖</string>
+    <string name="home_background_saved">背景圖已更新</string>
+    <string name="home_background_invalid">這張圖片無法使用</string>
     <string name="cag_profile_list">設定檔列表</string>
     <string name="compact_profile_rows">緊湊設定檔行</string>
     <string name="compact_profile_rows_sum">每個設定檔只顯示为一行，僅含名稱和延遲</string>
