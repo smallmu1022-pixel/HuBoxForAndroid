@@ -1,5 +1,7 @@
 package io.nekohasekai.sagernet.route
 
+import io.nekohasekai.sagernet.database.RuleEntity
+
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -51,19 +53,120 @@ class SmartRouteRulesTest {
         assertFalse(foreignCn.contains("android"))
     }
 
+    private fun buildRulesForTest(country: String): List<RuleEntity> =
+        SmartRouteRules.buildSmartRules(
+            rawCountry = country,
+            installedPackages = emptySet(),
+            bundledForeign = emptySet(),
+            proxyAppsEnabled = false,
+            bypassMode = false,
+            individualPackages = emptySet()
+        )
+
     @Test
     fun buildSmartRulesAdaptsToSelectedCountry() {
-        val cnRules = SmartRouteRules.buildSmartRules("cn")
+        val cnRules = buildRulesForTest("cn")
+        val googlePlayRule = cnRules.first { it.name == "Smart-GooglePlay" }
+        assertTrue(googlePlayRule.domains.contains("domain:google.cn"))
+        assertTrue(googlePlayRule.domains.contains("domain:gvt5.com"))
+        assertTrue(googlePlayRule.domains.contains("domain:ggpht.com"))
         assertTrue(cnRules.any { it.outbound == -1L && it.domains.contains("geosite:cn") && it.domains.contains("domain:cn") })
         assertTrue(cnRules.any { it.outbound == -1L && it.ip.contains("geoip:cn") })
 
-        val ruRules = SmartRouteRules.buildSmartRules("ru")
+        val ruRules = buildRulesForTest("ru")
         assertTrue(ruRules.any { it.outbound == -1L && it.domains.contains("geosite:ru") && it.domains.contains("domain:ru") })
         assertTrue(ruRules.any { it.outbound == -1L && it.ip.contains("geoip:ru") })
 
-        val irRules = SmartRouteRules.buildSmartRules("ir")
+        val irRules = buildRulesForTest("ir")
         assertTrue(irRules.any { it.outbound == -1L && it.domains.contains("geosite:ir") && it.domains.contains("domain:ir") })
         assertTrue(irRules.any { it.outbound == -1L && it.ip.contains("geoip:ir") })
+
+        val catalog = RuleSetCatalog.current()
+        for (country in listOf("tr", "id", "in", "vn", "br")) {
+            val countryRules = buildRulesForTest(country)
+            val domainRule = countryRules.firstOrNull {
+                it.outbound == -1L && it.domains.isNotBlank()
+            }
+            assertTrue("$country should retain country-domain fallback rules",
+                domainRule?.domains?.contains("domain:$country") == true)
+
+            val geositeAvailable = catalog.urlOf("geosite:$country") != null
+            assertTrue("$country GeoSite rule should match catalog availability",
+                countryRules.any { it.outbound == -1L && it.domains.contains("geosite:$country") } == geositeAvailable)
+
+            assertTrue("$country GeoIP ruleset should be available", countryRules.any {
+                it.outbound == -1L && it.ip.contains("geoip:$country")
+            })
+        }
+    }
+
+    @Test
+    fun explicitUserRulesTakePriorityOverGeneratedSmartFallbacks() {
+        val blockRule = io.nekohasekai.sagernet.database.RuleEntity(
+            name = "user-block",
+            domains = "domain:malware.example",
+            outbound = -2L,
+            enabled = true
+        )
+        val customRule = io.nekohasekai.sagernet.database.RuleEntity(
+            name = "user-custom",
+            domains = "domain:example.com",
+            outbound = 0L,
+            enabled = true
+        )
+
+        val merged = SmartRouteRules.mergeUserRules(
+            listOf(customRule, blockRule),
+            "cn"
+        )
+
+        assertTrue(merged.first() === blockRule)
+        assertTrue(merged[1] === customRule)
+        assertTrue(merged[2].name == "Smart-GooglePlay")
+    }
+
+    @Test
+    fun classifyAppsDoesNotTreatCountryCodePackageNamespacesAsDomesticProof() {
+        val sampleInstalled = setOf(
+            "cn.unrelated.foreignapp",
+            "com.cn.unrelated.foreignapp",
+            "ru.unrelated.foreignapp",
+            "ir.unrelated.foreignapp",
+            "tr.unrelated.foreignapp",
+            "id.unrelated.foreignapp",
+            "in.unrelated.foreignapp",
+            "vn.unrelated.foreignapp",
+            "br.unrelated.foreignapp",
+            "com.tencent.mm",
+            "cn.gov.tax.its"
+        )
+
+        val (domesticCn, _) = SmartRouteRules.classifyApps(
+            country = "cn",
+            installedPackages = sampleInstalled,
+            bundledForeign = emptySet()
+        )
+        assertFalse(domesticCn.contains("cn.unrelated.foreignapp"))
+        assertFalse(domesticCn.contains("com.cn.unrelated.foreignapp"))
+        assertTrue(domesticCn.contains("com.tencent.mm"))
+        assertTrue(domesticCn.contains("cn.gov.tax.its"))
+
+        val (domesticRu, _) = SmartRouteRules.classifyApps(
+            country = "ru",
+            installedPackages = sampleInstalled,
+            bundledForeign = emptySet()
+        )
+        assertFalse(domesticRu.contains("ru.unrelated.foreignapp"))
+
+        for (country in listOf("ir", "tr", "id", "in", "vn", "br")) {
+            val packageName = "$country.unrelated.foreignapp"
+            val (domestic, _) = SmartRouteRules.classifyApps(
+                country = country,
+                installedPackages = setOf(packageName),
+                bundledForeign = emptySet()
+            )
+            assertFalse("$country package namespace must not imply domestic origin", domestic.contains(packageName))
+        }
     }
 
     @Test
@@ -81,10 +184,11 @@ class SmartRouteRulesTest {
             bundledForeign = emptySet(),
             proxyAppsEnabled = true,
             bypassMode = false,
-            individualPackages = setOf("tv.danmaku.bili")
+            individualPackages = setOf("tv.danmaku.bili", "com.android.chrome")
         )
         assertFalse(domesticProxyMode.contains("tv.danmaku.bili"))
         assertTrue(foreignProxyMode.contains("tv.danmaku.bili"))
+        assertTrue(foreignProxyMode.contains("com.android.chrome"))
 
         // 当分应用代理开启且为「绕过选中应用 (bypassMode)」时，手动勾选绕过的应用应从代理名单移除并归入直连
         val (domesticBypassMode, foreignBypassMode) = SmartRouteRules.classifyApps(

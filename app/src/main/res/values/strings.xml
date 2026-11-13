@@ -978,6 +978,11 @@
     <string name="mode_smart_routing">Smart Routing</string>
     <string name="mode_global_proxy">Global Mode</string>
     <string name="custom_route">Custom Route</string>
+    <string name="battery_saver_title">Battery Saver Mode</string>
+    <string name="battery_saver_summary">Adjusts background traffic-stat polling only. VPN tunnel and keepalive behavior are unchanged.</string>
+    <string name="battery_saver_performance">Performance priority</string>
+    <string name="battery_saver_balanced">Smart balance (recommended)</string>
+    <string name="battery_saver_extreme">Maximum power saving</string>
     <string name="status_enabled">Enabled</string>
     <string name="status_disabled">Disabled</string>
     <string name="traffic_chart_title">Real-time Traffic Chart</string>

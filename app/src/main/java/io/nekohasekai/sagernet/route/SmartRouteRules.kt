@@ -229,8 +229,6 @@ object SmartRouteRules {
     )
 
     private val CN_PACKAGE_PREFIXES = listOf(
-        "cn.",
-        "com.cn.",
         "com.tencent.",
         "com.alibaba.",
         "com.taobao.",
@@ -295,7 +293,6 @@ object SmartRouteRules {
     )
 
     private val RU_PACKAGE_PREFIXES = listOf(
-        "ru.",
         "com.yandex.",
         "ru.yandex.",
         "com.vkontakte.",
@@ -319,9 +316,8 @@ object SmartRouteRules {
     )
 
     private val IR_PACKAGE_PREFIXES = listOf(
-        "ir.",
         "cab.snapp.",
-        "com.digikala"
+        "com.digikala."
     )
 
     fun domesticExplicitPackages(country: String): Set<String> = when (country) {
@@ -340,12 +336,12 @@ object SmartRouteRules {
         "cn" -> CN_PACKAGE_PREFIXES
         "ru" -> RU_PACKAGE_PREFIXES
         "ir" -> IR_PACKAGE_PREFIXES
-        "tr" -> listOf("tr.", "com.turkcell.", "com.ziraat.")
-        "id" -> listOf("id.", "co.id.", "com.gojek.", "com.tokopedia.")
-        "in" -> listOf("in.", "co.in.")
-        "vn" -> listOf("vn.", "com.zing.", "com.vng.")
-        "br" -> listOf("br.", "com.br.")
-        else -> listOf("$country.")
+        "tr" -> listOf("com.turkcell.", "com.ziraat.")
+        "id" -> listOf("com.gojek.", "com.tokopedia.")
+        "in" -> emptyList()
+        "vn" -> listOf("com.zing.", "com.vng.")
+        "br" -> emptyList()
+        else -> emptyList()
     }
 
     /** 各国家/地区的核心直连域名后缀保底列表 */
@@ -466,10 +462,10 @@ object SmartRouteRules {
                 // 仅代理选中应用模式：用户显式勾选的应用优先走代理，从本国直连名单中移除
                 for (pkg in individualPackages) {
                     if (pkg in SYSTEM_EXCLUDED_PACKAGES) continue
+                    // An explicit per-app selection overrides automatic browser/hybrid
+                    // exclusion; only unselected browsers are left to domain/IP routing.
                     resolvedDomestic.remove(pkg)
-                    if (pkg !in BROWSER_AND_HYBRID_PACKAGES) {
-                        resolvedForeign.add(pkg)
-                    }
+                    resolvedForeign.add(pkg)
                 }
             } else {
                 // 绕过选中应用模式：用户显式勾选绕过的应用从海外代理名单中移除并归入直连
@@ -493,6 +489,16 @@ object SmartRouteRules {
     }.getOrDefault(false)
 
     /**
+     * Preserve explicit user routing rules ahead of generated smart-routing fallbacks.
+     * Block rules remain first so an explicit block cannot be bypassed by later routes.
+     */
+    fun mergeUserRules(userRules: List<RuleEntity>, country: String): List<RuleEntity> {
+        val blockRules = userRules.filter { it.outbound == -2L }
+        val customRules = userRules.filter { it.outbound != -2L }
+        return blockRules + customRules + buildSmartRules(country)
+    }
+
+    /**
      * 构建当前国家/地区的完整四维智能分流规则列表：
      * 1. Google Play 与核心下载服务防误伤规则 -> 代理
      * 2. 国外专属软件 (App) -> 代理 + 远程 DNS
@@ -501,7 +507,14 @@ object SmartRouteRules {
      * 5. 本国 IP 段 (geoip:<country>) -> 直连
      * 6. 其余未命中流量由 route.final 兜底走主代理节点
      */
-    fun buildSmartRules(rawCountry: String = "cn"): List<RuleEntity> {
+    fun buildSmartRules(
+        rawCountry: String = "cn",
+        installedPackages: Set<String>? = null,
+        bundledForeign: Set<String>? = null,
+        proxyAppsEnabled: Boolean? = null,
+        bypassMode: Boolean? = null,
+        individualPackages: Set<String>? = null
+    ): List<RuleEntity> {
         val country = rawCountry.trim().lowercase().ifBlank { "cn" }
         val rules = ArrayList<RuleEntity>()
 
@@ -512,14 +525,23 @@ object SmartRouteRules {
                 domains = listOf(
                     "geosite:google-play",
                     "domain:googleapis.cn",
+                    "domain:google.cn",
+                    "domain:market.android.com",
+                    "domain:play.googleapis.com",
+                    "domain:android.clients.google.com",
+                    "domain:playstoregatewayadapter-pa.googleapis.com",
+                    "domain:firebaselogging-pa.googleapis.com",
                     "domain:gvt1.com",
                     "domain:gvt2.com",
                     "domain:gvt3.com",
+                    "domain:gvt5.com",
+                    "domain:gvt6.com",
+                    "domain:gvt7.com",
+                    "domain:gvt9.com",
                     "domain:gvt1-cn.com",
                     "domain:gvt2-cn.com",
                     "domain:googleusercontent.com",
-                    "domain:play.googleapis.com",
-                    "domain:android.clients.google.com",
+                    "domain:ggpht.com",
                     "domain:xn--ngstr-lra8j.com",
                     "domain:xn--ngstr-cn-8za9o.com"
                 ).joinToString("\n"),
@@ -529,7 +551,21 @@ object SmartRouteRules {
         )
 
         // 2. 应用级智能识别：国外软件走代理，本国软件走直连（浏览器与混合应用自动穿透到域名/IP 层）
-        val (domesticApps, foreignApps) = classifyApps(country)
+        val hasClassificationOverrides = installedPackages != null ||
+            bundledForeign != null || proxyAppsEnabled != null ||
+            bypassMode != null || individualPackages != null
+        val (domesticApps, foreignApps) = if (!hasClassificationOverrides) {
+            classifyApps(country)
+        } else {
+            classifyApps(
+                country = country,
+                installedPackages = installedPackages ?: emptySet(),
+                bundledForeign = bundledForeign ?: emptySet(),
+                proxyAppsEnabled = proxyAppsEnabled ?: false,
+                bypassMode = bypassMode ?: false,
+                individualPackages = individualPackages ?: emptySet()
+            )
+        }
         if (foreignApps.isNotEmpty()) {
             rules.add(
                 RuleEntity(

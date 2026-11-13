@@ -11,7 +11,9 @@ fi
 if [ ! -f "$GOPATH/bin/gomobile-matsuri" ]; then
     git clone https://github.com/MatsuriDayo/gomobile.git
     pushd gomobile
-	git checkout origin/master2
+    # Pin the verified gomobile revision so upstream master2 changes cannot
+    # silently alter the Android native build toolchain.
+    git checkout --detach 17d6af3
     pushd cmd
     pushd gomobile
     go install -v
