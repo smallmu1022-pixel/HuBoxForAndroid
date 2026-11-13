@@ -87,6 +87,57 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
             cacheMode = WebSettings.LOAD_DEFAULT
         }
         mWebView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                val host = url?.toHttpUrlOrNull()?.host?.lowercase(java.util.Locale.ROOT) ?: return
+                if (host != "board.zash.run.place" && host != "metacubex.github.io") return
+
+                // Remove credentials saved by older HuBox builds; never insert the current secret.
+                val cleanup = """
+                    (function() {
+                        try {
+                            if (location.hostname === "board.zash.run.place") {
+                                var key = "setup/api-list";
+                                var entries = JSON.parse(localStorage.getItem(key) || "[]");
+                                if (Array.isArray(entries)) {
+                                    entries.forEach(function(item) {
+                                        if (item && (item.host === "127.0.0.1" || item.host === "localhost") &&
+                                            String(item.port) === "9090") {
+                                            delete item.password;
+                                        }
+                                    });
+                                    localStorage.setItem(key, JSON.stringify(entries));
+                                }
+                            }
+                            if (location.hostname === "metacubex.github.io") {
+                                var endpoints = JSON.parse(localStorage.getItem("endpointList") || "[]");
+                                if (Array.isArray(endpoints)) {
+                                    endpoints.forEach(function(item) {
+                                        if (!item || !item.url) return;
+                                        try {
+                                            var endpoint = new URL(item.url);
+                                            if ((endpoint.hostname === "127.0.0.1" || endpoint.hostname === "localhost") &&
+                                                endpoint.port === "9090") {
+                                                delete item.secret;
+                                            }
+                                        } catch (_) {}
+                                    });
+                                    localStorage.setItem("endpointList", JSON.stringify(endpoints));
+                                }
+                            }
+                            var cleanHash = location.hash.replace(/([?&])secret=[^&]*/ig, "$1").replace(/[?&]$/, "");
+                            var cleanSearch = new URLSearchParams(location.search);
+                            cleanSearch.delete("secret");
+                            if (cleanHash !== location.hash || cleanSearch.toString() !== new URLSearchParams(location.search).toString()) {
+                                history.replaceState(null, document.title,
+                                    location.pathname + (cleanSearch.toString() ? "?" + cleanSearch.toString() : "") + cleanHash);
+                            }
+                        } catch (_) {}
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(cleanup, null)
+            }
+
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val url = request?.url?.toString()?.toHttpUrlOrNull() ?: return null
                 if (!request.isForMainFrame || request.method != "GET" ||
