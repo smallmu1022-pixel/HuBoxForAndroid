@@ -202,7 +202,10 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 )
                 isWebDAVBackup = false
                 
-                val client = OkHttpClient()
+                val client = OkHttpClient.Builder()
+                    .followRedirects(false)
+                    .followSslRedirects(false)
+                    .build()
 
                 // 规范化 URL
                 val baseUrl = DataStore.webdavServer!!.trimEnd('/')
@@ -219,8 +222,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 }
 
                 // 使用 HttpUrl 构建路径，避免 # 等特殊字符被当作 fragment
-                val baseHttpUrl = baseUrl.toHttpUrlOrNull()
-                    ?: throw Exception("Invalid server URL: $baseUrl")
+                val baseHttpUrl = io.nekohasekai.sagernet.utils.WebDAVSecurity.parseHttpsUrl(baseUrl)
 
                 val dirUrl = baseHttpUrl.newBuilder().apply {
                     path.split('/').filter { it.isNotEmpty() }.forEach { segment ->
@@ -340,7 +342,10 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         val activity = requireActivity()
         restoreJob = runOnDefaultDispatcher {
             try {
-                val client = OkHttpClient()
+                val client = OkHttpClient.Builder()
+                    .followRedirects(false)
+                    .followSslRedirects(false)
+                    .build()
                 val baseUrl = DataStore.webdavServer!!.trimEnd('/')
                 val path = DataStore.webdavPath?.trim('/')?.takeIf { it.isNotEmpty() } ?: "Throne"
 
@@ -348,8 +353,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                     throw Exception("Invalid server URL: must start with http:// or https://")
                 }
 
-                val baseHttpUrl = baseUrl.toHttpUrlOrNull()
-                    ?: throw Exception("Invalid server URL: $baseUrl")
+                val baseHttpUrl = io.nekohasekai.sagernet.utils.WebDAVSecurity.parseHttpsUrl(baseUrl)
 
                 val dirUrl = baseHttpUrl.newBuilder().apply {
                     path.split('/').filter { it.isNotEmpty() }.forEach { segment ->
