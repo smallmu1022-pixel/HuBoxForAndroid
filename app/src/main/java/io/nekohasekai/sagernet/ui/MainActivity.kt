@@ -21,6 +21,9 @@ import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceDataStore
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.graphics.drawable.GradientDrawable
+import android.view.ViewGroup
+import android.widget.TextView
 import com.google.android.material.snackbar.Snackbar
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.GroupType
@@ -582,7 +585,24 @@ class MainActivity : ThemedActivity(),
 
     override fun snackbarInternal(text: CharSequence): Snackbar {
         return Snackbar.make(binding.coordinator, text, Snackbar.LENGTH_LONG).apply {
-            // TODO
+            // HuBox v1.1.2: light glass snackbar — rounded, inset from the
+            // screen edges, and no elevation shadow above the bottom nav.
+            val density = resources.displayMetrics.density
+            view.elevation = 0f
+            view.background = GradientDrawable().apply {
+                cornerRadius = 14f * density
+                setColor(getColor(R.color.hubox_snackbar_bg))
+                setStroke(
+                    (1f * density).toInt().coerceAtLeast(1),
+                    getColor(R.color.card_stroke),
+                )
+            }
+            view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+                ?.setTextColor(getColor(R.color.hubox_snackbar_text))
+            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+                lp.setMargins((16 * density).toInt(), 0, (16 * density).toInt(), (12 * density).toInt())
+                view.layoutParams = lp
+            }
         }
     }
 
