@@ -13,6 +13,7 @@ import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -384,7 +385,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private fun updateModeButtons() {
         val root = view ?: return
-        val accent = Palette.primary(requireContext())
+        // Selected mode is highlighted green in both light and dark mode
+        // (Kenji v1.1.1); unselected stays the default variant color.
+        val accent = ContextCompat.getColor(requireContext(), R.color.hubox_highlight_green)
         val variant = requireContext().getColorAttr(R.attr.colorOnSurfaceVariant)
         val isGlobal = DataStore.globalMode
         val isSmart = DataStore.smartMode && !isGlobal

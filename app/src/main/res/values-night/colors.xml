@@ -21,6 +21,7 @@
     <!-- 卡片默认细边框：约 12% 白 -->
     <color name="card_stroke">#29FFFFFF</color>
     <color name="hubox_glass_card_fill">#E61A2742</color>
+    <color name="hubox_highlight_green">#4ADE80</color>
     <color name="popup_dropdown_stroke">#38FFFFFF</color>
 
 

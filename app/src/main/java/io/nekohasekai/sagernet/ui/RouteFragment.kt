@@ -440,14 +440,11 @@ class RouteFragment : ToolbarFragment(R.layout.layout_route), Toolbar.OnMenuItem
                 profileType.text = rule.mkSummary()
                 routeOutbound.text = rule.displayOutbound()
 
-                // 根据路由类型设置文字颜色
-                val colorRes = when (rule.outbound) {
-                    -2L -> R.color.color_route_block   // 屏蔽：红色
-                    -1L -> R.color.color_route_direct  // 直连：绿色
-                    0L -> R.color.color_route_proxy    // 代理：蓝色
-                    else -> R.color.color_route_config // 配置：紫色
-                }
-                routeOutbound.setTextColor(ContextCompat.getColor(itemView.context, colorRes))
+                // 路由出口统一高亮绿色显示（Kenji v1.1.1，白天/夜间同效）；
+                // 出口类型仍可从文字本身区分（代理/直连/屏蔽/配置名）。
+                routeOutbound.setTextColor(
+                    ContextCompat.getColor(itemView.context, R.color.hubox_highlight_green)
+                )
 
                 itemView.setOnClickListener(null)
                 itemView.isClickable = false
