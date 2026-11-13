@@ -19,7 +19,6 @@ import kotlinx.coroutines.launch
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.net.URL
 import com.google.android.material.snackbar.Snackbar
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -127,8 +126,10 @@ class WebDAVSettingsActivity : ThemedActivity() {
                         throw Exception(getString(R.string.webdav_server_empty))
                     }
 
-                    val url = URL(server)
+                    val url = io.nekohasekai.sagernet.utils.WebDAVSecurity.parseHttpsUrl(server)
                     val client = OkHttpClient.Builder()
+                        .followRedirects(false)
+                        .followSslRedirects(false)
                         .connectTimeout(10, TimeUnit.SECONDS)
                         .readTimeout(10, TimeUnit.SECONDS)
                         .writeTimeout(10, TimeUnit.SECONDS)
