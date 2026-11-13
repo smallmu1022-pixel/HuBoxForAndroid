@@ -107,6 +107,8 @@ class LocalYacdDashboardTest {
         assertFalse(source.contains("injectZashboardAutoConnect"))
         assertFalse(source.contains("injectMetaCubeXDAutoConnect"))
         assertFalse(source.contains("secret=\$secret"))
+        assertTrue(source.contains("delete item.password"))
+        assertTrue(source.contains("delete item.secret"))
     }
 
     @Test fun healthResponseClosesOnSuccessAndAllFailures() {
