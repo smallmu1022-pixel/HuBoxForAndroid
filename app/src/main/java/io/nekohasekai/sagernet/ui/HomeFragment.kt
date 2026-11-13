@@ -464,11 +464,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 }
 
                 HomeModules.ROUTE -> {
+                    // Display only (Kenji v1.1.1): route rules are edited from
+                    // the Tools grid, this card just shows the current state.
                     val card = inflater.inflate(R.layout.layout_home_module_route, modulesContainer, false)
                     routeValueView = card.findViewById(R.id.module_route_value)
-                    card.setOnClickListener {
-                        (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_route)
-                    }
                     card.setOnLongClickListener { openCustomize(); true }
                     modulesContainer.addView(card)
                 }
