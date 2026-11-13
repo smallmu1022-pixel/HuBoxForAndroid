@@ -238,6 +238,16 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
                     HomeModules.setLastTestTime(appCtx, groupId, System.currentTimeMillis())
                     testButton.isEnabled = true
                     testButton.text = getString(R.string.home_speed_test)
+                    // HuBox v1.1.2: after a test round, order by latency —
+                    // fastest first, failed/untested nodes sink to the bottom.
+                    profiles = profiles.sortedWith(
+                        compareBy<ProxyEntity> {
+                            if (it.status == 1 && it.ping > 0) 0 else 1
+                        }.thenBy {
+                            if (it.status == 1 && it.ping > 0) it.ping else Int.MAX_VALUE
+                        }.thenBy { it.userOrder },
+                    )
+                    adapter.submit(profiles, DataStore.selectedProxy)
                     updateFreshness()
                     onChanged?.invoke()
                 }

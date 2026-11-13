@@ -14,8 +14,8 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="6dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="4dp"
         android:visibility="gone"
         tools:visibility="visible"
         app:cardCornerRadius="@dimen/profile_card_corner_radius"
@@ -28,10 +28,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingTop="14dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="12dp">
+            android:paddingStart="13dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="13dp"
+            android:paddingBottom="9dp">
 
             <!-- Row 1: Cloud Icon + Title + Expire Date -->
             <LinearLayout
@@ -57,7 +57,7 @@
                     android:maxLines="1"
                     android:text="@string/subscription_info"
                     android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -76,7 +76,7 @@
                 android:id="@+id/layout_traffic_details"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="3dp"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -105,7 +105,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="0dp"
                             android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="17sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
                             tools:text="21.94 GiB" />
 
@@ -126,7 +126,7 @@
                     android:id="@+id/progress_traffic"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="3dp"
                     android:layout_marginBottom="1dp"
                     android:max="100"
                     android:visibility="gone"
@@ -141,7 +141,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="3dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -171,7 +171,7 @@
                     style="?attr/borderlessButtonStyle"
                     android:visibility="visible"
                     android:layout_width="wrap_content"
-                    android:layout_height="22dp"
+                    android:layout_height="20dp"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
                     android:paddingStart="6dp"
