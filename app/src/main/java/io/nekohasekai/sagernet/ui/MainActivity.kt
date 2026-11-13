@@ -601,7 +601,9 @@ class MainActivity : ThemedActivity(),
         showWhenConnected: Boolean,
         animate: Boolean,
     ) {
-        val showControls = fragment is ConfigurationFragment || DataStore.showBottomBar
+        // HuBox v1.1.1: no page forces the legacy FAB/stats bar anymore;
+        // it follows the user's "show bottom bar" setting on every page.
+        val showControls = DataStore.showBottomBar
         binding.stats.useExternalScrollDriver = fragment is ConfigurationFragment
         binding.stats.syncMainControls(
             showControls,
