@@ -82,7 +82,8 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
             allowFileAccess = false
             allowContentAccess = false
             // 允许 HTTPS 外部面板（如 https://board.zash.run.place/）安全请求本地 HTTP Clash API（http://127.0.0.1:9090）
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            // HTTPS dashboards may use the loopback API, but must not load arbitrary insecure origins.
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
         }
         mWebView.webViewClient = object : WebViewClient() {
