@@ -87,9 +87,15 @@ object Theme {
     }
 
     fun getTheme(context: Context = app): Int {
-        // HuBox ships a single blue-white theme; the legacy multi-color
-        // theme picker has been removed, so the choice is pinned here.
-        return R.style.Theme_SagerNet
+        // HuBox v1.1.0: glass theme with four palette presets. The custom
+        // palette keeps the ocean base style; its derived colors are applied
+        // programmatically by Palette on the glass surfaces.
+        return when (DataStore.themePalette) {
+            Palette.MINT -> R.style.Theme_SagerNet_Mint
+            Palette.GRAPE -> R.style.Theme_SagerNet_Grape
+            Palette.CORAL -> R.style.Theme_SagerNet_Coral
+            else -> R.style.Theme_SagerNet
+        }
     }
 
     fun getDialogTheme(context: Context = app): Int {

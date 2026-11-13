@@ -113,6 +113,9 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var activeBalancerId by configurationStore.long("activeBalancerId") { 0L }
     var showSubscriptionInfoCard by configurationStore.boolean(Key.SHOW_SUBSCRIPTION_INFO_CARD) { true }
     var customThemeColor by configurationStore.int("custom_theme_color") { 0x00E676 }
+
+    /** HuBox v1.1.0 glass palette: ocean / mint / grape / coral / custom. */
+    var themePalette by configurationStore.string(Key.THEME_PALETTE) { "ocean" }
     var hapticFeedback by configurationStore.boolean(Key.HAPTIC_FEEDBACK) { true }
     var showAllGroupsTab by configurationStore.boolean(Key.SHOW_ALL_GROUPS_TAB) { false }
     var allGroupsOrder by configurationStore.int(Key.ALL_GROUPS_ORDER) { GroupOrder.ORIGIN }

@@ -32,6 +32,12 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         DataStore.initGlobal()
         setPreferencesFromResource(R.xml.global_preferences, rootKey)
         tintPreferenceIcons(preferenceScreen, requireContext().getColorAttr(android.R.attr.textColorPrimary))
+
+        // HuBox v1.1.0: home screen customization lives on its own page.
+        findPreference<Preference>("homeCustomize")?.setOnPreferenceClickListener {
+            (activity as? MainActivity)?.displayFragment(HomeCustomizeFragment())
+            true
+        }
     }
 
     override fun onResume() {

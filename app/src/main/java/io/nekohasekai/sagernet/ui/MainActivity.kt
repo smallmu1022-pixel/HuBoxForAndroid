@@ -8,35 +8,19 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.RippleDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.RemoteException
-import android.view.Gravity
 import android.view.KeyEvent
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
-import androidx.core.view.GravityCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.preference.PreferenceDataStore
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.GroupType
@@ -51,7 +35,6 @@ import io.nekohasekai.sagernet.bg.SagerConnection
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
-import libcore.Libcore
 import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.database.SubscriptionBean
 import io.nekohasekai.sagernet.database.preference.OnPreferenceDataStoreChangeListener
@@ -67,7 +50,6 @@ import io.nekohasekai.sagernet.group.GroupUpdater
 import io.nekohasekai.sagernet.ktx.deduplicateProxies
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.ktx.alert
-import io.nekohasekai.sagernet.ktx.isPlay
 import io.nekohasekai.sagernet.ktx.isPreview
 import io.nekohasekai.sagernet.ktx.launchCustomTab
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
@@ -81,15 +63,9 @@ import moe.matsuri.nb4a.utils.Util
 
 class MainActivity : ThemedActivity(),
     SagerConnection.Callback,
-    OnPreferenceDataStoreChangeListener,
-    NavigationView.OnNavigationItemSelectedListener {
+    OnPreferenceDataStoreChangeListener {
 
     lateinit var binding: LayoutMainBinding
-    lateinit var navigation: NavigationView
-    private lateinit var drawerSettingsButton: View
-    private lateinit var drawerAboutButton: View
-    private lateinit var drawerMenuItems: LinearLayout
-    private lateinit var drawerMenuScroll: ScrollView
     private var currentMainFragment: ToolbarFragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,78 +103,34 @@ class MainActivity : ThemedActivity(),
         }
         binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
         binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
-        val drawerRoot: View = binding.navView
-        navigation = drawerRoot.findViewById(R.id.nav_menu_view)
-        drawerSettingsButton = drawerRoot.findViewById(R.id.drawer_settings_button)
-        drawerAboutButton = drawerRoot.findViewById(R.id.drawer_about_button)
-        drawerMenuItems = drawerRoot.findViewById(R.id.drawer_menu_items)
-        drawerMenuScroll = drawerRoot.findViewById(R.id.drawer_menu_scroll)
-        binding.drawerLayout.removeView(binding.navViewBlack)
-        val drawerFactor = UiScaleManager.drawerFactor()
-        val baseDrawerWidthDp = 260f
-        val drawerWidth = minOf(
-            (baseDrawerWidthDp * resources.displayMetrics.density * drawerFactor.coerceIn(0.8f, 1.15f)).toInt(),
-            resources.displayMetrics.widthPixels - (72 * resources.displayMetrics.density).toInt(),
-        )
-        drawerRoot.layoutParams = drawerRoot.layoutParams.apply { width = drawerWidth }
-        val drawerRadius = resources.getDimension(R.dimen.drawer_corner_radius)
-        drawerRoot.outlineProvider = object : android.view.ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: android.graphics.Outline) {
-                outline.setRoundRect(-drawerRadius.toInt(), 0, view.width, view.height, drawerRadius)
-            }
-        }
-        drawerRoot.clipToOutline = true
-        drawerRoot.elevation = dp(8).toFloat()
-        if (drawerFactor != 1.0f) {
-            drawerSettingsButton.scaleX = drawerFactor
-            drawerSettingsButton.scaleY = drawerFactor
-            drawerAboutButton.scaleX = drawerFactor
-            drawerAboutButton.scaleY = drawerFactor
-        }
-        navigation.setNavigationItemSelectedListener(this)
         binding.bottomNav.setOnItemSelectedListener { item ->
             if (syncingBottomNav) true else displayFragmentWithId(item.itemId)
         }
-        rebuildDrawerItems()
-        binding.drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
-            override fun onDrawerOpened(drawerView: View) {
-                updateProxyModeCard()
-            }
-        })
-        drawerSettingsButton.setOnClickListener {
-            if (isCurrentFragment(R.id.nav_settings)) {
-                binding.drawerLayout.closeDrawers()
-            } else {
-                displayFragmentWithId(R.id.nav_settings)
-            }
-        }
-        drawerAboutButton.setOnClickListener {
-            if (isCurrentFragment(R.id.nav_about)) {
-                binding.drawerLayout.closeDrawers()
-            } else {
-                displayFragmentWithId(R.id.nav_about)
-            }
-        }
-        ViewCompat.setOnApplyWindowInsetsListener(drawerRoot) { view, insets ->
-            val systemBars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+        if (io.nekohasekai.sagernet.utils.Palette.isCustom()) {
+            // Custom palette: the base style stays ocean, so tint the
+            // navigation selection with the derived color directly.
+            val palettePrimary = io.nekohasekai.sagernet.utils.Palette.primary(this)
+            binding.bottomNav.itemTextColor = ColorStateList(
+                arrayOf(
+                    intArrayOf(android.R.attr.state_checked),
+                    intArrayOf(),
+                ),
+                intArrayOf(
+                    palettePrimary,
+                    getColorAttr(android.R.attr.textColorSecondary),
+                ),
             )
-            view.updatePadding(top = systemBars.top, bottom = systemBars.bottom)
-            insets
+            binding.bottomNav.itemRippleColor =
+                ColorStateList.valueOf(ColorUtils.setAlphaComponent(palettePrimary, 40))
         }
-        ViewCompat.requestApplyInsets(drawerRoot)
-        attachDrawerScrollFades(
-            drawerRoot,
-            R.id.drawer_top_fade,
-            R.id.drawer_bottom_fade,
-        )
 
         if (savedInstanceState == null) {
-            displayFragmentWithId(R.id.nav_configuration)
+            displayFragmentWithId(R.id.nav_home)
         } else {
             currentMainFragment =
                 supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
             val currentNavigationItem = when (currentMainFragment) {
+                is HomeFragment -> R.id.nav_home
                 is ConfigurationFragment -> R.id.nav_configuration
                 is GroupFragment -> R.id.nav_group
                 is RouteFragment -> R.id.nav_route
@@ -213,10 +145,6 @@ class MainActivity : ThemedActivity(),
             currentNavigationItem?.let { setCheckedItem(it) }
         }
         onBackPressedDispatcher.addCallback {
-            if (binding.drawerLayout.isDrawerOpen(GravityCompat.START) || binding.drawerLayout.isOpen) {
-                binding.drawerLayout.closeDrawers()
-                return@addCallback
-            }
             if (binding.menuScrimOverlay?.visibility == View.VISIBLE) {
                 hideMenuScrim()
                 val fragment = supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
@@ -229,10 +157,10 @@ class MainActivity : ThemedActivity(),
             }
             val fragment = supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
             if (fragment?.onBackPressed() == true) return@addCallback
-            if (fragment is ConfigurationFragment) {
+            if (fragment is HomeFragment) {
                 moveTaskToBack(true)
             } else {
-                displayFragmentWithId(R.id.nav_configuration)
+                displayFragmentWithId(R.id.nav_home)
             }
         }
 
@@ -266,8 +194,6 @@ class MainActivity : ThemedActivity(),
         if (intent?.action == Intent.ACTION_VIEW) {
             onNewIntent(intent)
         }
-
-        refreshNavMenu(DataStore.enableClashAPI)
 
         // sdk 33 notification
         if (Build.VERSION.SDK_INT >= 33) {
@@ -304,8 +230,6 @@ class MainActivity : ThemedActivity(),
 
         checkClipboardOnResume()
         binding.stats.refreshDisplay()
-        refreshNavMenu(DataStore.enableClashAPI)
-        updateProxyModeCard()
     }
 
     private var lastPromptedClipboard: String = ""
@@ -402,11 +326,6 @@ class MainActivity : ThemedActivity(),
         } catch (e: Exception) {
             Logs.w("Failed to set excludeFromRecents: ${e.message}")
         }
-    }
-
-    fun refreshNavMenu(clashApi: Boolean) {
-        navigation.menu.findItem(R.id.nav_dashboard)?.isVisible = clashApi
-        rebuildDrawerItems()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -585,6 +504,7 @@ class MainActivity : ThemedActivity(),
         val current = currentMainFragment
             ?: supportFragmentManager.findFragmentById(R.id.fragment_holder)
         return when (id) {
+            R.id.nav_home -> current is HomeFragment
             R.id.nav_configuration -> current is ConfigurationFragment
             R.id.nav_group -> current is GroupFragment
             R.id.nav_route -> current is RouteFragment
@@ -599,21 +519,7 @@ class MainActivity : ThemedActivity(),
     }
 
     fun setCheckedItem(@IdRes id: Int) {
-        val menu = navigation.menu
-        fun uncheckAll(m: Menu) {
-            for (i in 0 until m.size()) {
-                val item = m.getItem(i)
-                if (item.hasSubMenu()) {
-                    item.subMenu?.let { uncheckAll(it) }
-                }
-                item.isChecked = false
-            }
-        }
-        uncheckAll(menu)
-        menu.findItem(id)?.isChecked = true
-        updateDrawerItemSelection(id)
-        drawerSettingsButton.isSelected = id == R.id.nav_settings
-        if (id == R.id.nav_configuration || id == R.id.nav_group ||
+        if (id == R.id.nav_home || id == R.id.nav_configuration ||
             id == R.id.nav_tools || id == R.id.nav_settings
         ) {
             syncingBottomNav = true
@@ -622,395 +528,7 @@ class MainActivity : ThemedActivity(),
         }
     }
 
-    private fun attachDrawerScrollFades(drawerRoot: View, topFadeId: Int, bottomFadeId: Int) {
-        val topFade = drawerRoot.findViewById<View>(topFadeId)
-        val bottomFade = drawerRoot.findViewById<View>(bottomFadeId)
-        val surface = getColorAttr(R.attr.colorSurface)
-        val transparentSurface = ColorUtils.setAlphaComponent(surface, 0)
-        topFade.background = GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(surface, transparentSurface),
-        )
-        bottomFade.background = GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(transparentSurface, surface),
-        )
-
-        fun updateFades() {
-            val scrollable = drawerMenuItems.height > drawerMenuScroll.height + 1
-            topFade.visibility = if (scrollable && drawerMenuScroll.canScrollVertically(-1)) View.VISIBLE else View.GONE
-            bottomFade.visibility = if (scrollable && drawerMenuScroll.canScrollVertically(1)) View.VISIBLE else View.GONE
-        }
-
-        drawerMenuScroll.viewTreeObserver.addOnScrollChangedListener { updateFades() }
-        drawerMenuItems.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateFades() }
-        drawerMenuScroll.post { updateFades() }
-    }
-
-    private fun rebuildDrawerItems() {
-        drawerMenuItems.removeAllViews()
-        val drawerFactor = UiScaleManager.drawerFactor()
-        val rowHeight = (dp(45) * drawerFactor).toInt().coerceIn(dp(36), dp(64))
-        val iconSize = (dp(22) * drawerFactor).toInt().coerceIn(dp(16), dp(30))
-        val groupGap = (dp(10) * drawerFactor).toInt().coerceAtLeast(dp(6))
-        val titleGap = (dp(14) * drawerFactor).toInt().coerceAtLeast(dp(10))
-        var previousGroup: Int? = null
-        val menu = navigation.menu
-        for (index in 0 until menu.size()) {
-            val item = menu.getItem(index)
-            if (!item.isVisible) continue
-
-            if (previousGroup != null && previousGroup != item.groupId) {
-                if (previousGroup == 0) {
-                    addProxyModeCard()
-                }
-                drawerMenuItems.addView(View(this), LinearLayout.LayoutParams(1, groupGap))
-            }
-            previousGroup = item.groupId
-
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(14), 0, dp(14), 0)
-                isClickable = true
-                isFocusable = true
-                tag = item.itemId
-                contentDescription = item.title
-                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
-            }
-            val rowParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                rowHeight,
-            ).apply {
-                marginStart = dp(12)
-                marginEnd = dp(12)
-                bottomMargin = dp(5)
-            }
-            row.background = drawerRowBackground(selected = item.isChecked)
-            val contentColor = resolveDrawerItemContentColor(selected = item.isChecked)
-
-            val icon = ImageView(this).apply {
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
-                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                val iconDrawable = item.icon?.mutate()
-                iconDrawable?.setTint(contentColor)
-                setImageDrawable(iconDrawable)
-            }
-            row.addView(icon, LinearLayout.LayoutParams(iconSize, iconSize))
-
-            val title = TextView(this).apply {
-                text = item.title
-                textSize = 16f * drawerFactor
-                setTextColor(contentColor)
-                typeface = Typeface.create("sans-serif-medium", if (item.isChecked) Typeface.BOLD else Typeface.NORMAL)
-                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-            }
-            row.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginStart = titleGap
-            })
-            row.setOnClickListener { onNavigationItemSelected(item) }
-            drawerMenuItems.addView(row, rowParams)
-        }
-        drawerMenuItems.post { drawerMenuScroll.requestLayout() }
-    }
-
-    private fun resolveDrawerItemContentColor(selected: Boolean): Int {
-        val isBlack = Theme.isBlackTheme(this)
-        val isNight = Theme.usingNightMode(this)
-        return when {
-            isBlack -> if (selected) Color.WHITE else Color.parseColor("#A1A1AA")
-            isNight -> if (selected) Color.parseColor("#E2E8F0") else Color.parseColor("#94A3B8")
-            else -> Color.parseColor("#475569")
-        }
-    }
-
-    private fun updateDrawerItemSelection(selectedId: Int) {
-        for (index in 0 until drawerMenuItems.childCount) {
-            val row = drawerMenuItems.getChildAt(index) as? LinearLayout ?: continue
-            val itemId = row.tag as? Int ?: continue
-            val selected = itemId == selectedId
-            row.isSelected = selected
-            row.background = drawerRowBackground(selected)
-            val contentColor = resolveDrawerItemContentColor(selected)
-            (row.getChildAt(0) as? ImageView)?.drawable?.setTint(contentColor)
-            val titleView = row.getChildAt(1) as? TextView
-            titleView?.setTextColor(contentColor)
-            titleView?.typeface = Typeface.create("sans-serif-medium", if (selected) Typeface.BOLD else Typeface.NORMAL)
-        }
-        updateProxyModeCard()
-    }
-
-    private var proxyModeCardView: View? = null
     private var syncingBottomNav = false
-
-    private fun addProxyModeCard() {
-        val proxyModeView = layoutInflater.inflate(R.layout.layout_drawer_proxy_mode, drawerMenuItems, false)
-        proxyModeCardView = proxyModeView
-
-        val btnSmart = proxyModeView.findViewById<View>(R.id.btn_mode_smart)
-        val btnGlobal = proxyModeView.findViewById<View>(R.id.btn_mode_global)
-        val btnAppProxy = proxyModeView.findViewById<View>(R.id.btn_app_proxy)
-        val btnCustomRoute = proxyModeView.findViewById<View>(R.id.btn_custom_route)
-
-        btnSmart.setOnClickListener {
-            if (DataStore.smartMode && !DataStore.globalMode) {
-                DataStore.smartMode = false
-            } else {
-                DataStore.smartMode = true
-                DataStore.globalMode = false
-            }
-            updateProxyModeCard(proxyModeView)
-            if (DataStore.serviceState.canStop) {
-                runCatching { SagerNet.reloadService() }
-            }
-            it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-        }
-
-        btnGlobal.setOnClickListener {
-            if (DataStore.globalMode) {
-                DataStore.globalMode = false
-            } else {
-                DataStore.globalMode = true
-                DataStore.smartMode = false
-            }
-            updateProxyModeCard(proxyModeView)
-            if (DataStore.serviceState.canStop) {
-                runCatching { SagerNet.reloadService() }
-            }
-            it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-        }
-
-        btnAppProxy.setOnClickListener {
-            startActivity(Intent(this, AppManagerActivity::class.java))
-            binding.drawerLayout.closeDrawers()
-            it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-        }
-
-        btnCustomRoute.setOnClickListener {
-            displayFragmentWithId(R.id.nav_route)
-            binding.drawerLayout.closeDrawers()
-            it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-        }
-
-        proxyModeView.findViewById<View>(R.id.btn_battery_saver_mode).setOnClickListener {
-            val modes = arrayOf("performance", "balanced", "extreme")
-            val labels = arrayOf(
-                getString(R.string.battery_saver_performance),
-                getString(R.string.battery_saver_balanced),
-                getString(R.string.battery_saver_extreme),
-            )
-            val selected = modes.indexOf(DataStore.batterySaverMode).takeIf { index -> index >= 0 } ?: 1
-            MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.battery_saver_title)
-                .setSingleChoiceItems(labels, selected) { dialog, which ->
-                    DataStore.batterySaverMode = modes[which]
-                    updateProxyModeCard(proxyModeView)
-                    dialog.dismiss()
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-        }
-
-        updateProxyModeCard(proxyModeView)
-        drawerMenuItems.addView(proxyModeView)
-    }
-
-    private fun createActiveModeToggleBackground(accentColor: Int, isDark: Boolean): RippleDrawable {
-        val density = resources.displayMetrics.density
-        val strokePx = (1.5f * density).toInt().coerceAtLeast(1)
-        val fill = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(12).toFloat()
-            setColor(ColorUtils.setAlphaComponent(accentColor, if (isDark) 36 else 22))
-            setStroke(strokePx, accentColor)
-        }
-        val ripple = ColorUtils.setAlphaComponent(accentColor, 32)
-        return RippleDrawable(ColorStateList.valueOf(ripple), fill, null)
-    }
-
-    private fun createThemeStatusChipBackground(accentColor: Int, isDark: Boolean): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(999).toFloat()
-            setColor(ColorUtils.setAlphaComponent(accentColor, if (isDark) 46 else 36))
-            setStroke(dp(1), ColorUtils.setAlphaComponent(accentColor, if (isDark) 130 else 115))
-        }
-    }
-
-    private fun updateProxyModeCard(root: View? = proxyModeCardView) {
-        val view = root ?: return
-        view.findViewById<TextView>(R.id.text_battery_saver_mode_value)?.text = when (DataStore.batterySaverMode) {
-            "performance" -> getString(R.string.battery_saver_performance)
-            "extreme" -> getString(R.string.battery_saver_extreme)
-            else -> getString(R.string.battery_saver_balanced)
-        }
-        val isGlobal = DataStore.globalMode
-        val isSmart = DataStore.smartMode && !isGlobal
-        val btnSmart = view.findViewById<LinearLayout>(R.id.btn_mode_smart) ?: return
-        val btnGlobal = view.findViewById<LinearLayout>(R.id.btn_mode_global) ?: return
-        val iconSmart = view.findViewById<ImageView>(R.id.icon_mode_smart)
-        val iconGlobal = view.findViewById<ImageView>(R.id.icon_mode_global)
-        val textSmart = view.findViewById<TextView>(R.id.text_mode_smart)
-        val textGlobal = view.findViewById<TextView>(R.id.text_mode_global)
-
-        val isBlack = Theme.isBlackTheme(this)
-        val isNight = Theme.usingNightMode(this)
-        val isDark = isBlack || isNight
-        val themeColor = Theme.getPrimaryColor(this)
-        val accentTextColor = when {
-            isBlack -> Color.WHITE
-            isNight -> ColorUtils.blendARGB(themeColor, Color.WHITE, 0.25f)
-            ColorUtils.calculateLuminance(themeColor) > 0.50 -> ColorUtils.blendARGB(themeColor, Color.BLACK, 0.35f)
-            else -> themeColor
-        }
-        // Selected proxy-mode controls follow the active HuBox theme accent.
-        val modeAccent = themeColor
-        val onSurfaceColor = getColorAttr(R.attr.colorOnSurface)
-        val onSurfaceVariantColor = getColorAttr(R.attr.colorOnSurfaceVariant)
-
-        // 3A: Selected mode button uses green highlight border + soft green fill + green icon/text
-        if (isSmart) {
-            btnSmart.background = createActiveModeToggleBackground(modeAccent, isDark)
-            iconSmart.drawable?.mutate()?.setTint(modeAccent)
-            textSmart.setTextColor(modeAccent)
-        } else {
-            btnSmart.setBackgroundResource(R.drawable.bg_proxy_mode_btn_inactive)
-            iconSmart.drawable?.mutate()?.setTint(onSurfaceVariantColor)
-            textSmart.setTextColor(onSurfaceVariantColor)
-        }
-
-        if (isGlobal) {
-            btnGlobal.background = createActiveModeToggleBackground(modeAccent, isDark)
-            iconGlobal.drawable?.mutate()?.setTint(modeAccent)
-            textGlobal.setTextColor(modeAccent)
-        } else {
-            btnGlobal.setBackgroundResource(R.drawable.bg_proxy_mode_btn_inactive)
-            iconGlobal.drawable?.mutate()?.setTint(onSurfaceVariantColor)
-            textGlobal.setTextColor(onSurfaceVariantColor)
-        }
-
-        // 4A: App proxy keeps borderless row, only inner "已开启 ●" status pill uses user theme color
-        val isAppProxyEnabled = DataStore.proxyApps
-        val btnAppProxy = view.findViewById<LinearLayout>(R.id.btn_app_proxy)
-        val chipAppProxy = view.findViewById<LinearLayout>(R.id.chip_app_proxy)
-        val textStatusAppProxy = view.findViewById<TextView>(R.id.status_text_app_proxy)
-        val dotStatusAppProxy = view.findViewById<View>(R.id.status_dot_app_proxy)
-
-        btnAppProxy?.setBackgroundResource(R.drawable.bg_proxy_mode_row)
-        if (chipAppProxy != null && textStatusAppProxy != null && dotStatusAppProxy != null) {
-            if (isAppProxyEnabled) {
-                chipAppProxy.background = createThemeStatusChipBackground(themeColor, isDark)
-                textStatusAppProxy.text = getString(R.string.status_enabled)
-                textStatusAppProxy.setTextColor(accentTextColor)
-                dotStatusAppProxy.background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(accentTextColor)
-                }
-            } else {
-                chipAppProxy.setBackgroundResource(R.drawable.bg_chip_status_disconnected)
-                textStatusAppProxy.text = getString(R.string.status_disabled)
-                textStatusAppProxy.setTextColor(Color.parseColor("#94A3B8"))
-                dotStatusAppProxy.background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(Color.parseColor("#94A3B8"))
-                }
-            }
-        }
-
-        // 5A: Custom route three-state indicator: 走智能分流 / 全局生效中 / 按规则运行
-        val btnCustomRoute = view.findViewById<LinearLayout>(R.id.btn_custom_route)
-        val iconCustomRoute = view.findViewById<ImageView>(R.id.icon_custom_route)
-        val chipCustomRoute = view.findViewById<LinearLayout>(R.id.chip_custom_route)
-        val textStatusCustomRoute = view.findViewById<TextView>(R.id.status_text_custom_route)
-        val dotStatusCustomRoute = view.findViewById<View>(R.id.status_dot_custom_route)
-
-        if (chipCustomRoute != null && textStatusCustomRoute != null && dotStatusCustomRoute != null) {
-            when {
-                isSmart -> {
-                    btnCustomRoute?.setBackgroundResource(R.drawable.bg_proxy_mode_row)
-                    iconCustomRoute?.drawable?.mutate()?.setTint(onSurfaceColor)
-                    chipCustomRoute.background = createThemeStatusChipBackground(modeAccent, isDark)
-                    textStatusCustomRoute.text = getString(R.string.status_smart_routing)
-                    textStatusCustomRoute.setTextColor(modeAccent)
-                    dotStatusCustomRoute.background = GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(modeAccent)
-                    }
-                }
-                isGlobal -> {
-                    btnCustomRoute?.setBackgroundResource(R.drawable.bg_proxy_mode_row)
-                    iconCustomRoute?.drawable?.mutate()?.setTint(onSurfaceColor)
-                    chipCustomRoute.background = GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
-                        cornerRadius = dp(999).toFloat()
-                        setColor(Color.parseColor("#2694A3B8"))
-                        setStroke(dp(1), Color.parseColor("#4D94A3B8"))
-                    }
-                    textStatusCustomRoute.text = getString(R.string.status_global_active)
-                    textStatusCustomRoute.setTextColor(Color.parseColor("#94A3B8"))
-                    dotStatusCustomRoute.background = GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(Color.parseColor("#94A3B8"))
-                    }
-                }
-                else -> {
-                    val density = resources.displayMetrics.density
-                    val strokePx = (1.2f * density).toInt().coerceAtLeast(1)
-                    btnCustomRoute?.background = GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
-                        cornerRadius = dp(14).toFloat()
-                        setColor(ColorUtils.setAlphaComponent(themeColor, if (isDark) 32 else 20))
-                        setStroke(strokePx, ColorUtils.setAlphaComponent(themeColor, if (isDark) 130 else 105))
-                    }
-                    iconCustomRoute?.drawable?.mutate()?.setTint(accentTextColor)
-                    chipCustomRoute.background = createThemeStatusChipBackground(themeColor, isDark)
-                    textStatusCustomRoute.text = getString(R.string.status_rule_active)
-                    textStatusCustomRoute.setTextColor(accentTextColor)
-                    dotStatusCustomRoute.background = GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(accentTextColor)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun drawerRowBackground(selected: Boolean): RippleDrawable {
-        val fillColor = if (!selected) {
-            Color.TRANSPARENT
-        } else {
-            val isBlack = Theme.isBlackTheme(this)
-            val isNight = Theme.usingNightMode(this)
-            val isMonoLight = Theme.isWhiteTheme(this) || Theme.isLightGrayTheme(this)
-            val themeColor = Theme.getPrimaryColor(this)
-            when {
-                isBlack -> Color.parseColor("#27272A")
-                isMonoLight -> getColorAttr(R.attr.colorSurfaceVariant)
-                isNight -> ColorUtils.setAlphaComponent(themeColor, 48)
-                else -> ColorUtils.blendARGB(Color.WHITE, themeColor, 0.13f)
-            }
-        }
-        val fill = GradientDrawable().apply {
-            cornerRadius = dp(16).toFloat()
-            setColor(fillColor)
-        }
-        val ripple = ColorUtils.setAlphaComponent(getColorAttr(R.attr.colorOnSurface), 20)
-        return RippleDrawable(ColorStateList.valueOf(ripple), fill, null)
-    }
-
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        if (isCurrentFragment(item.itemId)) {
-            binding.drawerLayout.closeDrawers()
-            return true
-        }
-        return displayFragmentWithId(item.itemId)
-    }
-
 
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
@@ -1018,7 +536,6 @@ class MainActivity : ThemedActivity(),
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_holder, fragment)
             .commitAllowingStateLoss()
-        binding.drawerLayout.closeDrawers()
         syncMainControls(fragment, showWhenConnected = false, animate = true)
     }
 
@@ -1065,6 +582,10 @@ class MainActivity : ThemedActivity(),
 
     fun displayFragmentWithId(@IdRes id: Int): Boolean {
         when (id) {
+            R.id.nav_home -> {
+                displayFragment(HomeFragment())
+            }
+
             R.id.nav_configuration -> {
                 displayFragment(ConfigurationFragment())
             }
@@ -1076,7 +597,6 @@ class MainActivity : ThemedActivity(),
             R.id.nav_diagnostics -> displayFragment(DiagnosticsFragment())
             R.id.nav_apps -> {
                 startActivity(Intent(this, AppManagerActivity::class.java))
-                binding.drawerLayout.closeDrawers()
                 return false
             }
             R.id.nav_tools -> displayFragment(ToolsFragment())
@@ -1102,6 +622,7 @@ class MainActivity : ThemedActivity(),
 
         binding.fab.changeState(state, DataStore.serviceState, animate)
         binding.stats.changeState(state)
+        (currentMainFragment as? HomeFragment)?.onServiceStateChanged(state)
         syncMainControls(
             showWhenConnected = state == BaseService.State.Connected,
             animate = animateControls,
@@ -1145,6 +666,7 @@ class MainActivity : ThemedActivity(),
     // ONLY do UI update here, write DB in bg process
     override fun cbSpeedUpdate(stats: SpeedDisplayData) {
         binding.stats.updateSpeed(stats.txRateProxy, stats.rxRateProxy)
+        (currentMainFragment as? HomeFragment)?.updateSpeed(stats.txRateProxy, stats.rxRateProxy)
     }
 
     override suspend fun cbTrafficUpdate(data: TrafficDataBatch) {
@@ -1156,6 +678,7 @@ class MainActivity : ThemedActivity(),
         DataStore.selectedProxy = id
         DataStore.currentProfile = id
         refreshConfigurationProfileState()
+        (currentMainFragment as? HomeFragment)?.refreshContent()
         runOnDefaultDispatcher {
             ProfileManager.postUpdate(old, true)
             ProfileManager.postUpdate(id, true)
@@ -1224,23 +747,7 @@ class MainActivity : ThemedActivity(),
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_LEFT -> {
-                if (super.onKeyDown(keyCode, event)) return true
-                binding.drawerLayout.open()
-                drawerMenuItems.getChildAt(0)?.requestFocus()
-            }
-
-            KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                if (binding.drawerLayout.isOpen) {
-                    binding.drawerLayout.close()
-                    return true
-                }
-            }
-        }
-
         if (super.onKeyDown(keyCode, event)) return true
-        if (binding.drawerLayout.isOpen) return false
 
         val fragment =
             supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment

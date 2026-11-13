@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.FragmentManager
 import androidx.preference.Preference
@@ -18,13 +17,6 @@ class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
 
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
-            val mainActivity = activity as? MainActivity
-            if (mainActivity?.binding?.drawerLayout?.isDrawerOpen(GravityCompat.START) == true ||
-                mainActivity?.binding?.drawerLayout?.isOpen == true
-            ) {
-                mainActivity.binding.drawerLayout.closeDrawers()
-                return
-            }
             childFragmentManager.popBackStack()
         }
     }
@@ -34,6 +26,7 @@ class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        io.nekohasekai.sagernet.utils.Palette.applyWindowBackground(view)
         ViewCompat.setOnApplyWindowInsetsListener(view, ListListener)
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
         childFragmentManager.addOnBackStackChangedListener(backStackListener)
@@ -90,10 +83,9 @@ class SettingsFragment : ToolbarFragment(R.layout.layout_config_settings),
             toolbar.setNavigationIcon(R.drawable.baseline_arrow_back_24)
             toolbar.setNavigationOnClickListener { childFragmentManager.popBackStack() }
         } else {
-            toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
-            toolbar.setNavigationOnClickListener {
-                (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
-            }
+            // HuBox v1.1.0: drawer removed, no navigation icon on the top-level settings page.
+            toolbar.setNavigationIcon(null)
+            toolbar.setNavigationOnClickListener(null)
         }
         toolbar.navigationIcon?.let {
             val tinted = it.mutate()

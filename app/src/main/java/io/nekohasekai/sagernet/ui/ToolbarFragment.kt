@@ -7,7 +7,6 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -31,10 +30,8 @@ open class ToolbarFragment : Fragment {
         val tb = view.findViewById<Toolbar?>(R.id.toolbar)
         if (tb != null) {
             toolbar = tb
-            toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
-            toolbar.setNavigationOnClickListener {
-                (activity as? MainActivity)?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
-            }
+            // HuBox v1.1.0: no drawer anymore, top-level pages have no navigation icon.
+            toolbar.setNavigationIcon(null)
             val customTitle = view.findViewById<TextView>(R.id.toolbar_title_view)
             if (customTitle != null) {
                 toolbar.contentInsetStartWithNavigation = 0
