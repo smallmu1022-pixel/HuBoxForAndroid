@@ -28,7 +28,6 @@ import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.utils.AppLocale
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.utils.UiScaleManager
-import moe.matsuri.nb4a.ui.ColorPickerPreference
 import moe.matsuri.nb4a.ui.SimpleMenuPreference
 import moe.matsuri.nb4a.ui.TelegramGroupedPreferenceDecoration
 
@@ -69,14 +68,6 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                 startActivity(Intent(requireContext(), UiScaleSettingsActivity::class.java))
                 true
             }
-        }
-
-        val appTheme = findPreference<ColorPickerPreference>(Key.APP_THEME)
-        appTheme?.setOnPreferenceChangeListener { _, newValue ->
-            DataStore.appTheme = (newValue as Number).toInt()
-            Theme.applyNightTheme()
-            activity?.recreate()
-            true
         }
 
         val nightTheme = findPreference<SimpleMenuPreference>(Key.NIGHT_THEME)
