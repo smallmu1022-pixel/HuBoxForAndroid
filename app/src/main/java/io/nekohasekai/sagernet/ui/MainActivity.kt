@@ -127,27 +127,13 @@ class MainActivity : ThemedActivity(),
         }
         binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
         binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
-        val drawerRoot: View
-        if (themeResId !in intArrayOf(
-                R.style.Theme_SagerNet_Black
-            )
-        ) {
-            drawerRoot = binding.navView
-            navigation = drawerRoot.findViewById(R.id.nav_menu_view)
-            drawerSettingsButton = drawerRoot.findViewById(R.id.drawer_settings_button)
-            drawerAboutButton = drawerRoot.findViewById(R.id.drawer_about_button)
-            drawerMenuItems = drawerRoot.findViewById(R.id.drawer_menu_items)
-            drawerMenuScroll = drawerRoot.findViewById(R.id.drawer_menu_scroll)
-            binding.drawerLayout.removeView(binding.navViewBlack)
-        } else {
-            drawerRoot = binding.navViewBlack
-            navigation = drawerRoot.findViewById(R.id.nav_menu_view_black)
-            drawerSettingsButton = drawerRoot.findViewById(R.id.drawer_settings_button_black)
-            drawerAboutButton = drawerRoot.findViewById(R.id.drawer_about_button_black)
-            drawerMenuItems = drawerRoot.findViewById(R.id.drawer_menu_items_black)
-            drawerMenuScroll = drawerRoot.findViewById(R.id.drawer_menu_scroll_black)
-            binding.drawerLayout.removeView(binding.navView)
-        }
+        val drawerRoot: View = binding.navView
+        navigation = drawerRoot.findViewById(R.id.nav_menu_view)
+        drawerSettingsButton = drawerRoot.findViewById(R.id.drawer_settings_button)
+        drawerAboutButton = drawerRoot.findViewById(R.id.drawer_about_button)
+        drawerMenuItems = drawerRoot.findViewById(R.id.drawer_menu_items)
+        drawerMenuScroll = drawerRoot.findViewById(R.id.drawer_menu_scroll)
+        binding.drawerLayout.removeView(binding.navViewBlack)
         val drawerFactor = UiScaleManager.drawerFactor()
         val baseDrawerWidthDp = 260f
         val drawerWidth = minOf(
@@ -200,8 +186,8 @@ class MainActivity : ThemedActivity(),
         ViewCompat.requestApplyInsets(drawerRoot)
         attachDrawerScrollFades(
             drawerRoot,
-            if (themeResId !in intArrayOf(R.style.Theme_SagerNet_Black)) R.id.drawer_top_fade else R.id.drawer_top_fade_black,
-            if (themeResId !in intArrayOf(R.style.Theme_SagerNet_Black)) R.id.drawer_bottom_fade else R.id.drawer_bottom_fade_black,
+            R.id.drawer_top_fade,
+            R.id.drawer_bottom_fade,
         )
 
         if (savedInstanceState == null) {
