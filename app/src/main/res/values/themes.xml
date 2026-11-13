@@ -564,4 +564,14 @@
         <item name="tabStyle">@style/Widget.SagerNet.TabLayout</item>
         <item name="tabTextAppearance">@style/Widget.SagerNet.TabLayout.TextAppearance</item>
     </style>
+    <style name="Theme.Start" parent="Theme.SagerNet">
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="colorPrimary">@android:color/transparent</item>
+        <item name="colorPrimaryDark">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
 </resources>
