@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.graphics.ColorUtils
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.app
@@ -40,10 +41,10 @@ object Theme {
     const val LIGHT_GRAY = 24
     const val CUSTOM = 99
 
-    private fun defaultTheme() = BLUE
+    private fun defaultTheme() = LIGHT_GRAY
 
     fun isValidTheme(themeId: Int): Boolean {
-        return themeId in MONET..LIGHT_GRAY || themeId == CUSTOM
+        return themeId == BLACK || themeId == LIGHT_GRAY
     }
 
     fun getClosestThemeForColor(color: Int): Int {
@@ -53,7 +54,7 @@ object Theme {
         val value = hsv[2]
 
         return when {
-            sat < 0.18f && value >= 0.88f -> WHITE
+            sat < 0.18f && value >= 0.88f -> LIGHT_GRAY
             sat < 0.18f && value <= 0.25f -> BLACK
             else -> LIGHT_GRAY
         }
@@ -80,28 +81,62 @@ object Theme {
 
     fun apply(context: Context) {
         context.setTheme(getTheme(context))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            (DataStore.appTheme == MONET || DataStore.useSystemTheme) &&
+            !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
+            context is android.app.Activity
+        ) {
+            com.google.android.material.color.DynamicColors.applyIfAvailable(context)
+        }
     }
 
     fun applyDialog(context: Context) {
         context.setTheme(getDialogTheme(context))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            (DataStore.appTheme == MONET || DataStore.useSystemTheme) &&
+            !isWhiteTheme(context) && !isLightGrayTheme(context) && !isBlackTheme(context) &&
+            context is android.app.Activity
+        ) {
+            com.google.android.material.color.DynamicColors.applyIfAvailable(context)
+        }
     }
 
     fun getTheme(context: Context = app): Int {
-        // HuBox ships a single blue-white theme; the legacy multi-color
-        // theme picker has been removed, so the choice is pinned here.
-        return R.style.Theme_SagerNet
+        val themeId = DataStore.appTheme
+        if (themeId == BLACK) {
+            return R.style.Theme_SagerNet_Black
+        }
+        if (usingNightMode(context) && themeId in setOf(WHITE, LIGHT_GRAY)) {
+            return R.style.Theme_SagerNet_Black
+        }
+        return getTheme(themeId)
     }
 
     fun getDialogTheme(context: Context = app): Int {
-        return R.style.Theme_SagerNet_Dialog
+        val themeId = DataStore.appTheme
+        if (themeId == BLACK) {
+            return R.style.Theme_SagerNet_Dialog_Black
+        }
+        if (usingNightMode(context) && themeId in setOf(WHITE, LIGHT_GRAY)) {
+            return R.style.Theme_SagerNet_Dialog_Black
+        }
+        return getDialogTheme(themeId)
     }
 
     fun getTheme(theme: Int): Int {
-        return R.style.Theme_SagerNet
+        return when (theme) {
+            BLACK -> R.style.Theme_SagerNet_Black
+            LIGHT_GRAY -> R.style.Theme_SagerNet_LightGray
+            else -> R.style.Theme_SagerNet_LightGray
+        }
     }
 
     fun getDialogTheme(theme: Int): Int {
-        return R.style.Theme_SagerNet_Dialog
+        return when (theme) {
+            BLACK -> R.style.Theme_SagerNet_Dialog_Black
+            LIGHT_GRAY -> R.style.Theme_SagerNet_Dialog_LightGray
+            else -> R.style.Theme_SagerNet_Dialog_LightGray
+        }
     }
 
     fun isSystemNight(context: Context = app): Boolean {
@@ -114,11 +149,27 @@ object Theme {
         return (sysUiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
     }
 
-    fun isWhiteTheme(context: Context = app): Boolean = false
-    fun isLightGrayTheme(context: Context = app): Boolean = false
-    fun isBlackTheme(context: Context = app): Boolean = false
+    fun isWhiteTheme(context: Context = app): Boolean = !usingNightMode(context) && DataStore.appTheme == WHITE
+    fun isLightGrayTheme(context: Context = app): Boolean = !usingNightMode(context) && DataStore.appTheme == LIGHT_GRAY
+    fun isBlackTheme(context: Context = app): Boolean =
+        DataStore.appTheme == BLACK || (usingNightMode(context) && DataStore.appTheme in setOf(WHITE, LIGHT_GRAY))
 
     fun getPrimaryColor(context: Context): Int {
+        if (isBlackTheme(context)) {
+            return Color.WHITE
+        }
+        if (isWhiteTheme(context)) {
+            return Color.parseColor("#212121")
+        }
+        if (isLightGrayTheme(context)) {
+            return Color.parseColor("#1F2937")
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (DataStore.appTheme == MONET || DataStore.useSystemTheme)) {
+            val wallpaperColor = getSystemWallpaperColor(context)
+            if (wallpaperColor != null) {
+                return wallpaperColor
+            }
+        }
         return context.getColorAttr(R.attr.colorPrimary)
     }
 
@@ -140,6 +191,7 @@ object Theme {
     }
 
     fun usingNightMode(context: Context = app): Boolean {
+        if (DataStore.appTheme == BLACK) return true
         return when (DataStore.nightTheme) {
             1 -> true
             2 -> false
@@ -148,6 +200,10 @@ object Theme {
     }
 
     fun applyNightTheme() {
+        if (DataStore.appTheme == BLACK) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            return
+        }
         when (DataStore.nightTheme) {
             0 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
             1 -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)

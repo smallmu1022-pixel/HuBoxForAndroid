@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Minimalist line style: white base, 1px outline, 16dp corners -->
+    <!-- Minimalist line style: white base, 16dp corners, no border -->
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="16dp" />
             <solid android:color="#FFFFFF" />
-            <stroke
-                android:width="1dp"
-                android:color="#E0E0E0" />
         </shape>
     </item>
     <!-- HuBox Brand Logo -->

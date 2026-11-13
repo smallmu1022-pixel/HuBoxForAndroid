@@ -63,13 +63,6 @@
         </FrameLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <include
-        android:id="@+id/home_header"
-        layout="@layout/layout_home_header"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-
     <FrameLayout
         android:id="@+id/group_tab_container"
         android:layout_width="match_parent"

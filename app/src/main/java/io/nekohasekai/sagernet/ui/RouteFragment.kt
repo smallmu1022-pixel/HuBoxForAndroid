@@ -98,7 +98,7 @@ class RouteFragment : ToolbarFragment(R.layout.layout_route), Toolbar.OnMenuItem
             val title = item.title ?: return@let
             item.title = SpannableString(title).apply {
                 setSpan(
-                    ForegroundColorSpan(Color.parseColor("#4CAF50")),
+                    ForegroundColorSpan(Color.parseColor("#00C853")),
                     0, length, Spanned.SPAN_INCLUSIVE_INCLUSIVE
                 )
             }
