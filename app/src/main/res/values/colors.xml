@@ -324,6 +324,7 @@
 
     <!-- 卡片默认细边框：约 12% 黑（低对比分隔线），夜间见 values-night/colors.xml -->
     <color name="card_stroke">#29000000</color>
+    <color name="hubox_glass_card_fill">#B8FFFFFF</color>
     <color name="popup_dropdown_stroke">#38000000</color>
 
 
