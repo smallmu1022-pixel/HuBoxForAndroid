@@ -68,6 +68,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private var todayValueView: TextView? = null
     private var ipValueView: TextView? = null
     private var ipQueryInFlight = false
+    private var skipNextResumeRefresh = false
 
     private val connect = registerForActivityResult(VpnRequestActivity.StartService()) {
         if (it) {
@@ -157,10 +158,17 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         view.findViewById<View>(R.id.home_btn_mode_global).setOnLongClickListener { openCustomize(); true }
 
         refreshContent()
+        // onViewCreated already refreshed; the onResume that immediately
+        // follows would rebuild every module card a second time for nothing.
+        skipNextResumeRefresh = true
     }
 
     override fun onResume() {
         super.onResume()
+        if (skipNextResumeRefresh) {
+            skipNextResumeRefresh = false
+            return
+        }
         if (::modulesContainer.isInitialized) {
             refreshContent()
         }
@@ -187,7 +195,14 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private fun openNodeSheet() {
         val sheet = NodeSelectSheet()
-        sheet.onChanged = { refreshContent() }
+        // Selecting a node or finishing a speed test only changes the node
+        // card; a full refresh would re-inflate every module for nothing.
+        sheet.onChanged = {
+            if (isAdded && view != null) {
+                renderState(DataStore.serviceState)
+                loadNodeInfo()
+            }
+        }
         sheet.show(childFragmentManager, "node_select")
     }
 
