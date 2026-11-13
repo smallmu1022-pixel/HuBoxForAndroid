@@ -9,6 +9,10 @@ on:
         description: "Release Tag (e.g. v1.0.8)"
         required: true
         default: "v1.0.8"
+      notes:
+        description: "Release notes (optional; overrides CHANGELOG and auto notes)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -251,6 +255,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -264,15 +269,30 @@ jobs:
           sha256sum *.apk > sha256sums.txt
           cd ..
           ls -la apks/
-      - name: Sync and verify Release Notes
+      - name: Prepare Release Notes
         env:
           VERSION_NAME: ${{ needs.validate.outputs.version }}
+          INPUT_NOTES: ${{ github.event.inputs.notes }}
         run: |
-          awk '/^# HuBox for Android v/{if(found) exit; found=1} found' CHANGELOG.md > RELEASE_NOTES.md
-          grep -q "^# HuBox for Android v$VERSION_NAME$" RELEASE_NOTES.md || {
-            echo "::error::Release notes do not start with the requested version $VERSION_NAME."
-            exit 1
-          }
+          # HuBox: release notes live on the Release page only. Sources, in
+          # order: dispatch input, legacy CHANGELOG section, git history.
+          if [ -n "$INPUT_NOTES" ]; then
+            printf '%s\n' "$INPUT_NOTES" > RELEASE_NOTES.md
+          elif [ -f CHANGELOG.md ] && grep -q "^# HuBox for Android v$VERSION_NAME$" CHANGELOG.md; then
+            awk '/^# HuBox for Android v/{if(found) exit; found=1} found' CHANGELOG.md > RELEASE_NOTES.md
+          else
+            PREV_TAG=$(git tag --sort=-v:refname | grep -v "^v$VERSION_NAME$" | head -n 1)
+            {
+              echo "# HuBox for Android v$VERSION_NAME"
+              echo
+              if [ -n "$PREV_TAG" ]; then
+                git log --pretty=format:'- %s' "$PREV_TAG"..HEAD
+              else
+                git log --pretty=format:'- %s' HEAD
+              fi
+              echo
+            } > RELEASE_NOTES.md
+          fi
           test -s RELEASE_NOTES.md
           cat RELEASE_NOTES.md
       - name: Publish to GitHub Releases
