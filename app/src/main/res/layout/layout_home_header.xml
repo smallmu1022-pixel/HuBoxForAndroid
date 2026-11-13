@@ -240,7 +240,7 @@
     <GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:alignmentMode="alignMargins"
         android:columnCount="3"
         android:rowCount="2"
@@ -249,8 +249,8 @@
         <LinearLayout
             android:id="@+id/home_tile_group"
             android:layout_width="0dp"
-            android:layout_height="62dp"
-            android:layout_margin="4dp"
+            android:layout_height="48dp"
+            android:layout_margin="3dp"
             android:layout_columnWeight="1"
             android:background="@drawable/bg_home_card"
             android:clickable="true"
@@ -259,15 +259,15 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
                 android:src="@drawable/ic_outline_view_list_24"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="3dp"
                 android:text="@string/menu_group"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="12sp" />
@@ -276,8 +276,8 @@
         <LinearLayout
             android:id="@+id/home_tile_route"
             android:layout_width="0dp"
-            android:layout_height="62dp"
-            android:layout_margin="4dp"
+            android:layout_height="48dp"
+            android:layout_margin="3dp"
             android:layout_columnWeight="1"
             android:background="@drawable/bg_home_card"
             android:clickable="true"
@@ -286,15 +286,15 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
                 android:src="@drawable/ic_outline_directions_24"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="3dp"
                 android:text="@string/menu_route"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="12sp" />
@@ -303,8 +303,8 @@
         <LinearLayout
             android:id="@+id/home_tile_diagnostics"
             android:layout_width="0dp"
-            android:layout_height="62dp"
-            android:layout_margin="4dp"
+            android:layout_height="48dp"
+            android:layout_margin="3dp"
             android:layout_columnWeight="1"
             android:background="@drawable/bg_home_card"
             android:clickable="true"
@@ -313,15 +313,15 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
                 android:src="@drawable/ic_outline_health_and_safety_24"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="3dp"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="@string/menu_diagnostics"
@@ -332,8 +332,8 @@
         <LinearLayout
             android:id="@+id/home_tile_tools"
             android:layout_width="0dp"
-            android:layout_height="62dp"
-            android:layout_margin="4dp"
+            android:layout_height="48dp"
+            android:layout_margin="3dp"
             android:layout_columnWeight="1"
             android:background="@drawable/bg_home_card"
             android:clickable="true"
@@ -342,15 +342,15 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
                 android:src="@drawable/ic_outline_construction_24"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="3dp"
                 android:text="@string/menu_tools"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="12sp" />
@@ -359,8 +359,8 @@
         <LinearLayout
             android:id="@+id/home_tile_logcat"
             android:layout_width="0dp"
-            android:layout_height="62dp"
-            android:layout_margin="4dp"
+            android:layout_height="48dp"
+            android:layout_margin="3dp"
             android:layout_columnWeight="1"
             android:background="@drawable/bg_home_card"
             android:clickable="true"
@@ -369,15 +369,15 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
                 android:src="@drawable/ic_outline_bug_report_24"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="3dp"
                 android:text="@string/menu_log"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="12sp" />
@@ -386,8 +386,8 @@
         <LinearLayout
             android:id="@+id/home_tile_about"
             android:layout_width="0dp"
-            android:layout_height="62dp"
-            android:layout_margin="4dp"
+            android:layout_height="48dp"
+            android:layout_margin="3dp"
             android:layout_columnWeight="1"
             android:background="@drawable/bg_home_card"
             android:clickable="true"
@@ -396,15 +396,15 @@
             android:orientation="vertical">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
                 android:src="@drawable/ic_baseline_info_24"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="3dp"
                 android:text="@string/menu_about"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="12sp" />
