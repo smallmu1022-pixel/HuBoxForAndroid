@@ -807,7 +807,6 @@ class MainActivity : ThemedActivity(),
             val selected = modes.indexOf(DataStore.batterySaverMode).takeIf { index -> index >= 0 } ?: 1
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.battery_saver_title)
-                .setMessage(R.string.battery_saver_summary)
                 .setSingleChoiceItems(labels, selected) { dialog, which ->
                     DataStore.batterySaverMode = modes[which]
                     updateProxyModeCard(proxyModeView)
