@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- HuBox v1.1.0: drawer removed. Root is a plain CoordinatorLayout with
-     fragment holder, service FAB + stats bar (config page), and a text-only
+     fragment holder and a text-only
      glass bottom navigation (Home / Configuration / Tools / Settings). -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -16,189 +16,6 @@
         android:layout_height="match_parent"
         android:layout_marginBottom="56dp" />
 
-    <!-- We double trackThickness as half of it will be invisible -->
-    <com.google.android.material.progressindicator.CircularProgressIndicator
-        android:id="@+id/fabProgress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:max="1"
-        android:visibility="invisible"
-        app:indicatorColor="?android:attr/textColorSecondary"
-        app:layout_anchor="@+id/fab"
-        app:layout_anchorGravity="center"
-        app:layout_behavior="io.nekohasekai.sagernet.widget.FabProgressBehavior"
-        app:trackCornerRadius="@dimen/mtrl_progress_track_thickness"
-        app:trackThickness="8dp" />
-
-    <io.nekohasekai.sagernet.widget.ServiceButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:elevation="6dp"
-        android:nextFocusDown="@+id/stats"
-        app:backgroundTint="?attr/fabColorBackground"
-        app:layout_anchor="@id/stats"
-        app:layout_anchorGravity="top|center_horizontal"
-        app:maxImageSize="24dp"
-        app:pressedTranslationZ="6dp"
-        app:srcCompat="@drawable/ic_service_plane_outline" />
-
-    <io.nekohasekai.sagernet.widget.StatsBar
-        android:id="@+id/stats"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="56dp"
-        android:nextFocusUp="@+id/fab"
-        app:backgroundTint="?colorPrimary"
-        app:contentInsetStart="0dp"
-        app:hideOnScroll="true">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/stats_content_container"
-            android:background="?android:attr/selectableItemBackground"
-            android:orientation="vertical"
-            android:paddingHorizontal="18dp"
-            android:paddingVertical="12dp">
-
-            <!-- Row 1: 左侧 tx / rx (左肩垂直排布独享全宽)，中央 FAB 凹槽安全隔离，右侧 status 与 btn_ip_detail (右肩) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <!-- 左肩：tx / rx 速率区域（纵向排列各自独享全宽，自适应缩放彻底杜绝大字体截断） -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical|start"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tx"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:textSize="12sp"
-                        app:autoSizeMaxTextSize="13sp"
-                        app:autoSizeMinTextSize="9sp"
-                        app:autoSizeStepGranularity="0.5sp"
-                        app:autoSizeTextType="uniform"
-                        tools:text="▲ 0 B/s" />
-
-                    <TextView
-                        android:id="@+id/rx"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:textSize="12sp"
-                        app:autoSizeMaxTextSize="13sp"
-                        app:autoSizeMinTextSize="9sp"
-                        app:autoSizeStepGranularity="0.5sp"
-                        app:autoSizeTextType="uniform"
-                        tools:text="▼ 0 B/s" />
-
-                </LinearLayout>
-
-                <!-- 中央：FAB 悬浮球凹槽物理安全隔离空间 -->
-                <Space
-                    android:layout_width="48dp"
-                    android:layout_height="1dp" />
-
-                <!-- 右肩：status 延迟与重测刷新按钮（规整靠右对齐，上下两行排版防大字体截断） -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical|end"
-                    android:orientation="horizontal"
-                    android:id="@+id/status_area"
-                    android:background="?android:attr/selectableItemBackground">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="end|center_vertical"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/status_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="end"
-                            android:gravity="end"
-                            android:maxLines="1"
-                            android:textSize="11sp"
-                            android:visibility="gone"
-                            app:autoSizeMaxTextSize="11sp"
-                            app:autoSizeMinTextSize="8sp"
-                            app:autoSizeStepGranularity="0.5sp"
-                            app:autoSizeTextType="uniform"
-                            tools:text="HTTPS 握手延迟"
-                            tools:visibility="visible" />
-
-                        <TextView
-                            android:id="@+id/status"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="end"
-                            android:gravity="end"
-                            android:maxLines="1"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            app:autoSizeMaxTextSize="13sp"
-                            app:autoSizeMinTextSize="9sp"
-                            app:autoSizeStepGranularity="0.5sp"
-                            app:autoSizeTextType="uniform"
-                            tools:text="202ms" />
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:id="@+id/btn_ip_detail"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_marginStart="6dp"
-                        android:background="?android:attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/retest"
-                        android:padding="2dp"
-                        android:src="@drawable/ic_baseline_refresh_24"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-            <!-- Row 2: 出站落地 IP 独占整行展示，支持大字体自适应与双行弹性折行 -->
-            <TextView
-                android:id="@+id/status_ip"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                app:autoSizeMaxTextSize="14sp"
-                app:autoSizeMinTextSize="10sp"
-                app:autoSizeStepGranularity="0.5sp"
-                app:autoSizeTextType="uniform"
-                tools:text="🇰🇷 KR 118.218.10.157"
-                tools:visibility="visible" />
-
-        </LinearLayout>
-
-    </io.nekohasekai.sagernet.widget.StatsBar>
 
     <View
         android:id="@+id/menu_scrim_overlay"
@@ -221,7 +38,7 @@
         app:itemTextAppearanceActive="@style/TextAppearance.HuBox.BottomNav.Active"
         app:itemTextAppearanceInactive="@style/TextAppearance.HuBox.BottomNav"
         app:itemTextColor="@color/bottom_nav_tint"
-        app:itemRippleColor="?attr/colorPrimary"
+        app:itemBackground="@drawable/bg_bottom_nav_item"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_navigation" />
 

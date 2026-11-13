@@ -63,13 +63,6 @@
             app:title="@string/compact_profile_rows" />
         <SwitchPreferenceCompat
             app:defaultValue="true"
-            app:icon="@drawable/solar_earth_linear"
-            app:key="showLandingIp"
-            app:summary="@string/show_landing_ip_sum"
-            app:title="@string/show_landing_ip"
-            app:useSimpleSummaryProvider="true" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
             app:icon="@drawable/ic_file_cloud_queue"
             app:key="show_subscription_info_card"
             app:summary="@string/show_subscription_info_card_summary"
@@ -186,19 +179,6 @@
             app:key="notificationPermission"
             app:persistent="false"
             app:title="@string/notification_permission" />
-    </PreferenceCategory>
-
-    <PreferenceCategory app:title="@string/cag_misc">
-        <SwitchPreferenceCompat
-            app:icon="@drawable/solar_slider_minimalistic_horizontal_linear"
-            app:key="showBottomBar"
-            app:title="@string/show_bottom_bar" />
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:icon="@drawable/solar_smartphone_vibration_linear"
-            app:key="hapticFeedback"
-            app:title="@string/haptic_feedback"
-            app:summary="@string/haptic_feedback_summary" />
     </PreferenceCategory>
 
 </PreferenceScreen>

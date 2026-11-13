@@ -9,7 +9,6 @@ import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.ktx.dp2px
-import io.nekohasekai.sagernet.ktx.getColorAttr
 
 /**
  * HuBox v1.1.0 "Customize home" page.
@@ -33,26 +32,6 @@ class HomeCustomizeFragment : ToolbarFragment(R.layout.layout_home_customize) {
         container.removeAllViews()
         val ctx = requireContext()
 
-        // Fixed modules: shown for clarity, no controls.
-        val fixedRows = listOf(
-            R.string.home_fixed_connect,
-            R.string.home_current_node,
-            R.string.home_fixed_mode,
-        )
-        for (titleRes in fixedRows) {
-            container.addView(fixedRow(getString(titleRes)))
-        }
-
-        val divider = View(ctx).apply {
-            setBackgroundColor(0x1A000000)
-        }
-        container.addView(
-            divider,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp2px(1),
-            ).apply { topMargin = dp2px(6); bottomMargin = dp2px(6) },
-        )
-
         val modules = HomeModules.orderedModules(ctx)
         modules.forEachIndexed { index, module ->
             container.addView(moduleRow(module.id, getString(module.titleRes), index, modules.size))
@@ -71,24 +50,6 @@ class HomeCustomizeFragment : ToolbarFragment(R.layout.layout_home_customize) {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = dp2px(10) }
         }
-    }
-
-    private fun fixedRow(title: String): View {
-        val row = baseRow()
-        val label = TextView(requireContext()).apply {
-            text = title
-            textSize = 15f
-            setTextColor(requireContext().getColorAttr(android.R.attr.textColorSecondary))
-        }
-        row.addView(label, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val badge = TextView(requireContext()).apply {
-            text = getString(R.string.home_fixed_module)
-            textSize = 12f
-            setTextColor(requireContext().getColorAttr(android.R.attr.textColorSecondary))
-        }
-        row.addView(badge)
-        row.alpha = 0.75f
-        return row
     }
 
     private fun moduleRow(id: String, title: String, index: Int, count: Int): View {

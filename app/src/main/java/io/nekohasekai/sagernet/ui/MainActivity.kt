@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -19,6 +18,7 @@ import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
+import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceDataStore
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -39,9 +39,7 @@ import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.database.SubscriptionBean
 import io.nekohasekai.sagernet.database.preference.OnPreferenceDataStoreChangeListener
 import io.nekohasekai.sagernet.databinding.LayoutMainBinding
-import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.utils.LandingIpManager
-import io.nekohasekai.sagernet.utils.UiScaleManager
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.fmt.KryoConverters
 import io.nekohasekai.sagernet.fmt.PluginEntry
@@ -71,38 +69,8 @@ class MainActivity : ThemedActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MessageStore.setCurrentActivity(this)
-        val animateInitialControls = savedInstanceState == null
 
         binding = LayoutMainBinding.inflate(layoutInflater)
-        binding.fab.initProgress(binding.fabProgress)
-        val bottomFactor = UiScaleManager.bottomBarFactor()
-        if (bottomFactor != 1.0f) {
-            binding.fab.scaleX = bottomFactor
-            binding.fab.scaleY = bottomFactor
-            binding.fabProgress.scaleX = bottomFactor
-            binding.fabProgress.scaleY = bottomFactor
-        }
-        val isNight = Theme.usingNightMode(this)
-        val fabBgColor = when {
-            Theme.isBlackTheme(this) -> Color.BLACK
-            Theme.isWhiteTheme(this) -> Color.parseColor("#212121")
-            Theme.isLightGrayTheme(this) -> Color.parseColor("#1F2937")
-            else -> {
-                val bg = getColorAttr(R.attr.fabColorBackground)
-                if (isNight && ColorUtils.calculateLuminance(bg) > 0.75) {
-                    val primary = getColorAttr(R.attr.colorPrimary)
-                    if (ColorUtils.calculateLuminance(primary) > 0.75) {
-                        Color.parseColor("#2C2C2E")
-                    } else {
-                        primary
-                    }
-                } else {
-                    bg
-                }
-            }
-        }
-        binding.fab.backgroundTintList = ColorStateList.valueOf(fabBgColor)
-        binding.fab.imageTintList = ColorStateList.valueOf(Color.WHITE)
         binding.bottomNav.setOnItemSelectedListener { item ->
             if (syncingBottomNav) true else displayFragmentWithId(item.itemId)
         }
@@ -164,29 +132,11 @@ class MainActivity : ThemedActivity(),
             }
         }
 
-        binding.fab.setOnClickListener {
-            if (DataStore.hapticFeedback) it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(
-                null
-            )
-        }
-        binding.stats.setOnClickListener {
-            if (DataStore.hapticFeedback) it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-            if (DataStore.serviceState.connected) binding.stats.onIpDetailClicked()
-        }
-
         setContentView(binding.root)
         currentMainFragment =
             supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
                 ?: currentMainFragment
-        if (!animateInitialControls) {
-            syncMainControls(showWhenConnected = false, animate = false)
-        }
-        changeState(
-            BaseService.State.Idle,
-            animate = false,
-            animateControls = animateInitialControls,
-        )
+        changeState(BaseService.State.Idle)
         connection.connect(this, this)
         DataStore.configurationStore.registerChangeListener(this)
         GroupManager.userInterface = GroupInterfaceAdapter(this)
@@ -229,7 +179,6 @@ class MainActivity : ThemedActivity(),
         }
 
         checkClipboardOnResume()
-        binding.stats.refreshDisplay()
     }
 
     private var lastPromptedClipboard: String = ""
@@ -307,11 +256,6 @@ class MainActivity : ThemedActivity(),
             supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
         if (restoredFragment != null && restoredFragment !== currentMainFragment) {
             currentMainFragment = restoredFragment
-            syncMainControls(
-                fragment = restoredFragment,
-                showWhenConnected = DataStore.serviceState == BaseService.State.Connected,
-                animate = false,
-            )
         }
     }
 
@@ -530,44 +474,66 @@ class MainActivity : ThemedActivity(),
 
     private var syncingBottomNav = false
 
+    // HuBox v1.1.1: the four bottom-nav pages stay alive once created and are
+    // switched with show/hide instead of destroy-and-rebuild, which removes
+    // the visible stutter on every tab change. Hidden pages are capped at
+    // STARTED, so their onPause/onResume semantics (timers, refresh on
+    // return) behave exactly as they did with replace().
+    private val tabTags = mapOf(
+        R.id.nav_home to "tab_home",
+        R.id.nav_configuration to "tab_configuration",
+        R.id.nav_tools to "tab_tools",
+        R.id.nav_settings to "tab_settings",
+    )
+
+    private fun createTabFragment(@IdRes id: Int): ToolbarFragment = when (id) {
+        R.id.nav_home -> HomeFragment()
+        R.id.nav_configuration -> ConfigurationFragment()
+        R.id.nav_tools -> ToolsFragment()
+        else -> SettingsFragment()
+    }
+
+    private fun displayTab(@IdRes id: Int) {
+        val tag = tabTags.getValue(id)
+        val target = supportFragmentManager.findFragmentByTag(tag) as? ToolbarFragment
+            ?: createTabFragment(id)
+        val tx = supportFragmentManager.beginTransaction()
+        for (other in supportFragmentManager.fragments) {
+            if (other.id != R.id.fragment_holder || other === target) continue
+            if (other.tag in tabTags.values) {
+                tx.hide(other)
+                tx.setMaxLifecycle(other, Lifecycle.State.STARTED)
+            } else {
+                tx.remove(other)
+            }
+        }
+        if (target.isAdded) {
+            tx.show(target)
+        } else {
+            tx.add(R.id.fragment_holder, target, tag)
+        }
+        tx.setMaxLifecycle(target, Lifecycle.State.RESUMED)
+        tx.commitAllowingStateLoss()
+        currentMainFragment = target
+    }
+
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
         currentMainFragment = fragment
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_holder, fragment)
-            .commitAllowingStateLoss()
-        syncMainControls(fragment, showWhenConnected = false, animate = true)
-    }
-
-    private fun syncMainControls(
-        fragment: Any? = currentMainFragment
-            ?: supportFragmentManager.findFragmentById(R.id.fragment_holder),
-        showWhenConnected: Boolean,
-        animate: Boolean,
-    ) {
-        val showControls = fragment is ConfigurationFragment || DataStore.showBottomBar
-        binding.stats.useExternalScrollDriver = fragment is ConfigurationFragment
-        binding.stats.syncMainControls(
-            showControls,
-            DataStore.serviceState,
-            showWhenConnected,
-            animate,
-        )
-        binding.fab.animate().cancel()
-        if (showControls) {
-            binding.fab.translationY = 0f
-            binding.fab.translationX = 0f
-            binding.fab.show()
-        } else {
-            binding.fab.hideProgress()
-            binding.fabProgress.hide()
-            binding.fabProgress.visibility = View.INVISIBLE
-            if (animate && binding.fab.isLaidOut) {
-                binding.fab.hide()
+        val tx = supportFragmentManager.beginTransaction()
+        // Keep cached tab pages alive underneath non-tab screens.
+        for (other in supportFragmentManager.fragments) {
+            if (other.id != R.id.fragment_holder) continue
+            if (other.tag in tabTags.values) {
+                tx.hide(other)
+                tx.setMaxLifecycle(other, Lifecycle.State.STARTED)
             } else {
-                binding.fab.visibility = View.INVISIBLE
+                tx.remove(other)
             }
         }
+        tx.add(R.id.fragment_holder, fragment)
+        tx.setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
+        tx.commitAllowingStateLoss()
     }
 
     private fun refreshConfigurationProfileState() {
@@ -576,30 +542,22 @@ class MainActivity : ThemedActivity(),
         (fragment as? ConfigurationFragment)?.refreshProfileState()
     }
 
-    fun driveBottomBar(scrollDy: Int) {
-        binding.stats.onListScrolled(scrollDy)
-    }
-
     fun displayFragmentWithId(@IdRes id: Int): Boolean {
         when (id) {
-            R.id.nav_home -> {
-                displayFragment(HomeFragment())
-            }
+            R.id.nav_home -> displayTab(R.id.nav_home)
 
-            R.id.nav_configuration -> {
-                displayFragment(ConfigurationFragment())
-            }
+            R.id.nav_configuration -> displayTab(R.id.nav_configuration)
 
             R.id.nav_group -> displayFragment(GroupFragment())
             R.id.nav_route -> displayFragment(RouteFragment())
-            R.id.nav_settings -> displayFragment(SettingsFragment())
+            R.id.nav_settings -> displayTab(R.id.nav_settings)
             R.id.nav_dashboard -> displayFragment(WebviewFragment())
             R.id.nav_diagnostics -> displayFragment(DiagnosticsFragment())
             R.id.nav_apps -> {
                 startActivity(Intent(this, AppManagerActivity::class.java))
                 return false
             }
-            R.id.nav_tools -> displayFragment(ToolsFragment())
+            R.id.nav_tools -> displayTab(R.id.nav_tools)
             R.id.nav_logcat -> displayFragment(LogcatFragment())
 
             R.id.nav_about -> displayFragment(AboutFragment())
@@ -613,34 +571,23 @@ class MainActivity : ThemedActivity(),
     private fun changeState(
         state: BaseService.State,
         msg: String? = null,
-        animate: Boolean = false,
-        animateControls: Boolean = animate,
     ) {
         DataStore.serviceState = state
         refreshConfigurationProfileState()
         io.nekohasekai.sagernet.widget.HuBoxWidgetProvider.updateWidgets(this)
 
-        binding.fab.changeState(state, DataStore.serviceState, animate)
-        binding.stats.changeState(state)
         (currentMainFragment as? HomeFragment)?.onServiceStateChanged(state)
-        syncMainControls(
-            showWhenConnected = state == BaseService.State.Connected,
-            animate = animateControls,
-        )
         if (msg != null) snackbar(getString(R.string.vpn_error, msg)).show()
     }
 
     override fun snackbarInternal(text: CharSequence): Snackbar {
         return Snackbar.make(binding.coordinator, text, Snackbar.LENGTH_LONG).apply {
-            if (binding.fab.isShown) {
-                anchorView = binding.fab
-            }
             // TODO
         }
     }
 
     override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) {
-        changeState(state, msg, true)
+        changeState(state, msg)
     }
 
     val connection = SagerConnection(SagerConnection.CONNECTION_ID_MAIN_ACTIVITY_FOREGROUND, true)
@@ -658,14 +605,9 @@ class MainActivity : ThemedActivity(),
         connection.connect(this, this)
     }
 
-    private val connect = registerForActivityResult(VpnRequestActivity.StartService()) {
-        if (it) snackbar(R.string.vpn_permission_denied).show()
-    }
-
     // may NOT called when app is in background
     // ONLY do UI update here, write DB in bg process
     override fun cbSpeedUpdate(stats: SpeedDisplayData) {
-        binding.stats.updateSpeed(stats.txRateProxy, stats.rxRateProxy)
         (currentMainFragment as? HomeFragment)?.updateSpeed(stats.txRateProxy, stats.rxRateProxy)
     }
 
@@ -683,10 +625,6 @@ class MainActivity : ThemedActivity(),
             ProfileManager.postUpdate(old, true)
             ProfileManager.postUpdate(id, true)
         }
-        if (DataStore.showLandingIp) {
-            binding.stats.refreshLandingIp(forceRefresh = true)
-        }
-        binding.stats.testConnection(silent = true)
     }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
@@ -696,27 +634,6 @@ class MainActivity : ThemedActivity(),
                 Key.SERVICE_MODE -> onBinderDied()
                 Key.PROFILE_ID -> {
                     LandingIpManager.clearCache()
-                    if (DataStore.serviceState.connected) {
-                        if (DataStore.showLandingIp) {
-                            binding.stats.refreshLandingIp(forceRefresh = true)
-                        }
-                        binding.stats.testConnection(silent = true)
-                    }
-                }
-                Key.SHOW_LANDING_IP -> {
-                    binding.stats.refreshDisplay()
-                }
-                Key.SHOW_BOTTOM_BAR -> {
-                    syncMainControls(
-                        showWhenConnected = DataStore.showBottomBar,
-                        animate = true,
-                    )
-                    when (val fragment = currentMainFragment
-                        ?: supportFragmentManager.findFragmentById(R.id.fragment_holder)
-                    ) {
-                        is GroupFragment -> fragment.updateBottomPadding()
-                        is RouteFragment -> fragment.updateBottomPadding()
-                    }
                 }
                 Key.PROXY_APPS, Key.BYPASS_MODE, Key.INDIVIDUAL -> {
                     if (DataStore.serviceState.canStop) {

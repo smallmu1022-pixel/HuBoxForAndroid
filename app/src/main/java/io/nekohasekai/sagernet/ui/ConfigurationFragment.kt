@@ -15,7 +15,6 @@ import android.text.format.Formatter
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.text.style.StyleSpan
-import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.Menu
@@ -365,7 +364,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             if (DataStore.serviceState.canStop) {
                 runCatching { SagerNet.reloadService() }
             }
-            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
         header.findViewById<View>(R.id.home_btn_mode_global).setOnClickListener {
             if (DataStore.globalMode) {
@@ -378,7 +376,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             if (DataStore.serviceState.canStop) {
                 runCatching { SagerNet.reloadService() }
             }
-            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
         header.findViewById<View>(R.id.home_btn_battery).setOnClickListener {
             val modes = arrayOf("performance", "balanced", "extreme")
@@ -397,7 +394,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
-            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
         val mainActivity = activity as? MainActivity
@@ -1153,9 +1149,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                             if (pos in 0 until adapter.groupList.size) {
                                 val group = adapter.groupList[pos]
                                 if (group.id > 0L && group.id != ALL_GROUPS_SENTINEL_ID) {
-                                    if (DataStore.hapticFeedback) {
-                                        v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                    }
                                     val ctx = context ?: return@Runnable
                                     startActivity(Intent(ctx, GroupSettingsActivity::class.java).apply {
                                         putExtra(GroupSettingsActivity.EXTRA_GROUP_ID, group.id)
@@ -1376,8 +1369,6 @@ class ConfigurationFragment @JvmOverloads constructor(
         ad.isReorderMode = true
 
         currentFrag.view?.findViewById<View>(R.id.btn_save_reorder)?.isVisible = true
-        (activity as? MainActivity)?.binding?.fab?.hide()
-        (activity as? MainActivity)?.binding?.fabProgress?.visibility = View.INVISIBLE
         ad.notifyDataSetChanged()
         updateToolbarForReorderMode()
     }
@@ -1434,7 +1425,6 @@ class ConfigurationFragment @JvmOverloads constructor(
 
         val currentFrag = getCurrentGroupFragment()
         currentFrag?.view?.findViewById<View>(R.id.btn_save_reorder)?.isGone = true
-        (activity as? MainActivity)?.binding?.fab?.show()
 
         currentFrag?.adapter?.let { ad ->
             ad.isReorderMode = false
@@ -2205,7 +2195,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                     val rxBytes = sample.downloadBitsPerSecond / 8
                     val txBytes = sample.uploadBitsPerSecond / 8
                     runOnMainDispatcher {
-                        (activity as? MainActivity)?.binding?.stats?.updateSpeed(txBytes, rxBytes)
                         try {
                             (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                                 io.nekohasekai.sagernet.aidl.SpeedDisplayData(
@@ -2276,7 +2265,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             } finally {
                 runOnMainDispatcher {
-                    (activity as? MainActivity)?.binding?.stats?.updateSpeed(0, 0)
                     try {
                         (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                             io.nekohasekai.sagernet.aidl.SpeedDisplayData(0, 0, 0, 0, 0, 0)
@@ -2358,7 +2346,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                     val rxBytes = sample.downloadBitsPerSecond / 8
                     val txBytes = sample.uploadBitsPerSecond / 8
                     runOnMainDispatcher {
-                        (activity as? MainActivity)?.binding?.stats?.updateSpeed(txBytes, rxBytes)
                         try {
                             (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                                 io.nekohasekai.sagernet.aidl.SpeedDisplayData(
@@ -2433,7 +2420,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             } finally {
                 runOnMainDispatcher {
-                    (activity as? MainActivity)?.binding?.stats?.updateSpeed(0, 0)
                     try {
                         (activity as? MainActivity)?.connection?.service?.postNotificationSpeed(
                             io.nekohasekai.sagernet.aidl.SpeedDisplayData(0, 0, 0, 0, 0, 0)
@@ -3090,9 +3076,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             val holder = configurationListView.findViewHolderForAdapterPosition(index) as? ConfigurationHolder
             val cardView = holder?.itemView ?: return
 
-            if (DataStore.hapticFeedback) {
-                cardView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            }
 
             cardView.animate()
                 .scaleX(1.025f)
@@ -3448,7 +3431,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             if (!select) {
                 undoManager = UndoSnackbarManager(activity as MainActivity, adapter!!)
                 setupItemTouchHelper()
-                setupBottomBarScrollDriver()
             }
             view.findViewById<View>(R.id.btn_save_reorder)?.setOnClickListener {
                 (parentFragment as? ConfigurationFragment)?.saveReorder()
@@ -3673,35 +3655,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             card.isVisible = true
-        }
-
-        private fun setupBottomBarScrollDriver() {
-            val mainActivity = activity as? MainActivity ?: return
-            configurationListView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    if (dy != 0) mainActivity.driveBottomBar(dy)
-                }
-            })
-
-            val touchSlop = ViewConfiguration.get(requireContext()).scaledTouchSlop
-            var lastRawY = 0f
-            configurationListView.setOnTouchListener { recyclerView, event ->
-                when (event.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> lastRawY = event.rawY
-                    MotionEvent.ACTION_MOVE -> {
-                        val cannotScroll = !recyclerView.canScrollVertically(-1) &&
-                                !recyclerView.canScrollVertically(1)
-                        if (cannotScroll) {
-                            val fingerDy = event.rawY - lastRawY
-                            if (abs(fingerDy) >= touchSlop) {
-                                mainActivity.driveBottomBar(-fingerDy.toInt())
-                                lastRawY = event.rawY
-                            }
-                        }
-                    }
-                }
-                false
-            }
         }
 
         private var activeNodePopupMenu: PopupMenu? = null
@@ -4459,14 +4412,12 @@ class ConfigurationFragment @JvmOverloads constructor(
                 applyCardScale()
                 dragHandle.setOnTouchListener { v, event ->
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                        if (DataStore.hapticFeedback) v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                         itemTouchHelper.startDrag(this)
                     }
                     false
                 }
                 view.setOnClickListener {
                     if (adapter?.isReorderMode == true) return@setOnClickListener
-                    if (DataStore.hapticFeedback) it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     val proxyEntity = entity
                     if (select) {
                         val pf = parentFragment as? ConfigurationFragment
@@ -4487,19 +4438,15 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
                 profileStatus.isFocusable = false
                 editButton.setOnClickListener {
-                    if (DataStore.hapticFeedback) it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     showNodeCascadingMenu(it, entity)
                 }
                 removeButton.setOnClickListener {
-                    if (DataStore.hapticFeedback) it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     removeProfile(entity)
                 }
                 doubleColumnMenuButton.setOnClickListener {
-                    if (DataStore.hapticFeedback) it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     showNodeCascadingMenu(it, entity)
                 }
                 shareLayout.setOnClickListener {
-                    if (DataStore.hapticFeedback) it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     val proxyEntity = entity
                     if (!select && proxyEntity.type != ProxyEntity.TYPE_CHAIN && proxyEntity.type != ProxyEntity.TYPE_BALANCER) {
                         showNodeCascadingMenu(it, proxyEntity)
@@ -4508,11 +4455,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 view.isLongClickable = true
                 view.setOnLongClickListener {
                     if (adapter?.isReorderMode == true) {
-                        if (DataStore.hapticFeedback) it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                         itemTouchHelper.startDrag(this)
                         return@setOnLongClickListener true
                     }
-                    if (DataStore.hapticFeedback) it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     val proxyEntity = entity
                     if (!select) {
                         showNodeCascadingMenu(it, proxyEntity)

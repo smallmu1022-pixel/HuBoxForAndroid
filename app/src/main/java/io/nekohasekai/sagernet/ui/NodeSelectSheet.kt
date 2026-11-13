@@ -1,11 +1,14 @@
 package io.nekohasekai.sagernet.ui
 
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -273,6 +276,7 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
             private val type: TextView = itemView.findViewById(R.id.item_node_type)
             private val ping: TextView = itemView.findViewById(R.id.item_node_ping)
             private val check: ImageView = itemView.findViewById(R.id.item_node_check)
+            private val defaultBackground = itemView.background
 
             fun bind(entity: ProxyEntity, selected: Boolean) {
                 name.text = entity.displayName()
@@ -304,6 +308,24 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
                 }
                 itemView.alpha = if (entity.status == 3) 0.55f else 1f
                 check.visibility = if (selected) View.VISIBLE else View.GONE
+                // HuBox v1.1.1: the checked node reads in highlight green so the
+                // selection stays obvious in both light and dark mode.
+                if (selected) {
+                    val green = itemView.context.getColor(R.color.hubox_highlight_green)
+                    name.setTextColor(green)
+                    ping.setTextColor(green)
+                    check.imageTintList = ColorStateList.valueOf(green)
+                    itemView.background = GradientDrawable().apply {
+                        cornerRadius = 12f * itemView.resources.displayMetrics.density
+                        setColor(ColorUtils.setAlphaComponent(green, 31))
+                    }
+                } else {
+                    name.setTextColor(
+                        itemView.context.getColorAttr(android.R.attr.textColorPrimary)
+                    )
+                    check.imageTintList = null
+                    itemView.background = defaultBackground
+                }
                 itemView.setOnClickListener { onSelect(entity) }
                 ping.setOnClickListener { onPingClick(entity) }
             }

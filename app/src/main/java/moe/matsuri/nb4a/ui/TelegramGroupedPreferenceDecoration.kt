@@ -10,13 +10,16 @@ import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceGroupAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
+import io.nekohasekai.sagernet.utils.Palette
 import io.nekohasekai.sagernet.utils.Theme
 
 /**
@@ -77,6 +80,7 @@ class TelegramGroupedPreferenceDecoration(private val context: Context) : Recycl
             outRect.bottom = if (isLast) dp2px(8) else 0
 
             applyGroupRipple(view, isFirst, isLast)
+            applyIconChip(view)
 
             view.minimumHeight = dp2px(48)
             val targetPadV = dp2px(4)
@@ -121,11 +125,28 @@ class TelegramGroupedPreferenceDecoration(private val context: Context) : Recycl
         view.background = RippleDrawable(ColorStateList.valueOf(rippleColor), null, mask)
     }
 
+    /**
+     * HuBox v1.1.1: each row's icon sits on a rounded chip tinted with the
+     * active palette's primary color, matching the glass home/tools pages.
+     */
+    private fun applyIconChip(view: View) {
+        val iconView = view.findViewById<ImageView>(android.R.id.icon) ?: return
+        if (iconView.background is GradientDrawable) return
+        val pad = dp2px(7)
+        iconView.setPadding(pad, pad, pad, pad)
+        iconView.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp2px(12).toFloat()
+            setColor(ColorUtils.setAlphaComponent(Palette.primary(context), 36))
+        }
+    }
+
     override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
         val adapter = parent.adapter as? PreferenceGroupAdapter ?: return
         if (parent.childCount == 0) return
 
-        val surfaceColor = context.getColorAttr(R.attr.cardElevatedSurfaceColor)
+        // HuBox v1.1.1: glass card fill instead of the flat elevated surface.
+        val surfaceColor = context.getColor(R.color.hubox_glass_card_fill)
         val strokeColor = context.getColor(R.color.card_stroke)
 
         fillPaint.color = surfaceColor

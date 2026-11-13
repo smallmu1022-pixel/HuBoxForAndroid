@@ -61,7 +61,6 @@ object Key {
     const val SPEED_INTERVAL = "speedInterval"
     const val BATTERY_SAVER_MODE = "batterySaverMode"
     const val SHOW_DIRECT_SPEED = "showDirectSpeed"
-    const val SHOW_LANDING_IP = "showLandingIp"
 
     const val HTTP_PROXY_BYPASS = "httpProxyBypass"
     const val DNS_HOSTS = "dnsHosts"
@@ -97,14 +96,12 @@ object Key {
     const val ACQUIRE_WAKE_LOCK = "acquireWakeLock"
     const val HIDE_FROM_RECENT_APPS = "hideFromRecentApps"
     const val PREVIEW_HINT_DISMISSED_VERSION = "previewHintDismissedVersion"
-    const val SHOW_BOTTOM_BAR = "showBottomBar"
     const val CONFIRM_PROFILE_DELETE = "confirmProfileDelete"
     const val GROUP_LAYOUT_MODE = "groupLayoutMode"
     const val PROFILE_CARD_STYLE = "profileCardStyle"
     const val PROFILE_VIEW_MODE = "profileViewMode"
     const val SHOW_BALANCER_SUMMARY = "showBalancerSummary"
     const val SHOW_SUBSCRIPTION_INFO_CARD = "show_subscription_info_card"
-    const val HAPTIC_FEEDBACK = "hapticFeedback"
     const val SHOW_ALL_GROUPS_TAB = "showAllGroupsTab"
     const val ALL_GROUPS_ORDER = "allGroupsOrder"
 

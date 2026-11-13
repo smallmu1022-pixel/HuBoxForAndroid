@@ -7,12 +7,12 @@ import android.graphics.PorterDuff
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.format.Formatter
-import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -56,6 +56,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private lateinit var modulesContainer: LinearLayout
 
     private var arcAnimator: ObjectAnimator? = null
+    private var arcDurationMs: Long = 0L
+
+    // Halo ring rotation: brisk while connecting, a slow ambient spin once
+    // connected (single small view, GPU-cheap, no per-frame work on CPU).
+    private val ARC_CONNECTING_MS = 1100L
+    private val ARC_CONNECTED_MS = 6000L
     private var sessionJob: Job? = null
     private var sessionInitRunning = false
     private var sessionTx: Long = 0L
@@ -122,9 +128,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         modulesContainer = view.findViewById(R.id.home_modules)
 
         view.findViewById<View>(R.id.connect_button).setOnClickListener {
-            if (DataStore.hapticFeedback) {
-                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-            }
             if (DataStore.serviceState.canStop) {
                 SagerNet.stopService()
             } else {
@@ -186,7 +189,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         if (DataStore.serviceState.canStop) {
             runCatching { SagerNet.reloadService() }
         }
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
 
     private fun openCustomize() {
@@ -241,8 +243,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 ).apply { shape = GradientDrawable.OVAL }
                 connectHalo.setImageResource(R.drawable.ic_halo_white)
                 connectHalo.clearColorFilter()
-                stopArcAnimation()
-                connectArc.visibility = View.GONE
+                connectArc.visibility = View.VISIBLE
+                startArcAnimation(ARC_CONNECTED_MS)
                 stateText.text = getString(R.string.home_status_connected)
                 stateHint.text = getString(R.string.home_action_disconnect)
                 ensureSessionStarted()
@@ -257,7 +259,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 connectHalo.setImageResource(R.drawable.ic_halo_white)
                 connectHalo.clearColorFilter()
                 connectArc.visibility = View.VISIBLE
-                startArcAnimation()
+                startArcAnimation(ARC_CONNECTING_MS)
                 stateText.text = getString(R.string.connecting)
                 stateHint.text = getString(R.string.home_tap_to_cancel)
             }
@@ -307,10 +309,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         connectHalo.setColorFilter(Palette.primary(ctx), PorterDuff.Mode.SRC_IN)
     }
 
-    private fun startArcAnimation() {
-        if (arcAnimator?.isRunning == true) return
+    private fun startArcAnimation(durationMs: Long) {
+        if (arcAnimator?.isRunning == true && arcDurationMs == durationMs) return
+        stopArcAnimation()
+        arcDurationMs = durationMs
         arcAnimator = ObjectAnimator.ofFloat(connectArc, View.ROTATION, 0f, 360f).apply {
-            duration = 1100
+            duration = durationMs
             repeatCount = ObjectAnimator.INFINITE
             interpolator = LinearInterpolator()
             start()
@@ -320,6 +324,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private fun stopArcAnimation() {
         arcAnimator?.cancel()
         arcAnimator = null
+        arcDurationMs = 0L
         if (::connectArc.isInitialized) connectArc.rotation = 0f
     }
 
@@ -375,7 +380,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     private fun updateModeButtons() {
         val root = view ?: return
-        val accent = Palette.primary(requireContext())
+        // Selected mode is highlighted green in both light and dark mode
+        // (Kenji v1.1.1); unselected stays the default variant color.
+        val accent = ContextCompat.getColor(requireContext(), R.color.hubox_highlight_green)
         val variant = requireContext().getColorAttr(R.attr.colorOnSurfaceVariant)
         val isGlobal = DataStore.globalMode
         val isSmart = DataStore.smartMode && !isGlobal
@@ -455,11 +462,10 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
                 }
 
                 HomeModules.ROUTE -> {
+                    // Display only (Kenji v1.1.1): route rules are edited from
+                    // the Tools grid, this card just shows the current state.
                     val card = inflater.inflate(R.layout.layout_home_module_route, modulesContainer, false)
                     routeValueView = card.findViewById(R.id.module_route_value)
-                    card.setOnClickListener {
-                        (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_route)
-                    }
                     card.setOnLongClickListener { openCustomize(); true }
                     modulesContainer.addView(card)
                 }

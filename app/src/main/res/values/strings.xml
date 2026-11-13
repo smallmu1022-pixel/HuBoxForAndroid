@@ -1350,7 +1350,7 @@
     <string name="settings_cat_basic">Basic Experience</string>
     <string name="settings_cat_core_network">Core Engine &amp; Network</string>
     <string name="settings_cat_advanced">Advanced &amp; Diagnostics</string>
-    <string name="settings_ui_summary">Appearance, card style, language and haptics</string>
+    <string name="settings_ui_summary">Appearance, card style and language</string>
     <string name="settings_vpn_summary">Auto-connect, per-app proxy, bypass LAN, strict route, MTU</string>
     <string name="settings_mode_summary">Service mode, mixed inbound, proxy port, LAN sharing</string>
     <string name="settings_core_summary">Smart routing region, traffic sniffing, IPv6, route rules provider and update</string>
@@ -1445,4 +1445,7 @@
     <string name="app_traffic_hint">Live traffic by app, aggregated from current connections</string>
     <string name="app_traffic_empty">No connection data yet. Connect first and make sure the Clash API is enabled.</string>
     <string name="app_traffic_total">Total</string>
+    <string name="settings_group_common">Common</string>
+    <string name="settings_group_network">Network</string>
+    <string name="settings_group_advanced">Advanced</string>
 </resources>
