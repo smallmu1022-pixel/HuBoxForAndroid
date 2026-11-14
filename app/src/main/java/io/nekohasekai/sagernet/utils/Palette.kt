@@ -136,6 +136,15 @@ object Palette {
     }
 
     fun applyWindowBackground(view: View) {
+        // HuBox v1.1.7: when a custom background photo is set, page roots
+        // must stay transparent — this opaque gradient otherwise covers
+        // the photo on the activity window everywhere except the strip
+        // outside the fragment holder (the v1.1.4–v1.1.6 "photo only
+        // behind the bottom nav" bug).
+        if (DataStore.homeBackground.isNotEmpty()) {
+            view.background = null
+            return
+        }
         view.background = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
             backgroundColors(view.context),

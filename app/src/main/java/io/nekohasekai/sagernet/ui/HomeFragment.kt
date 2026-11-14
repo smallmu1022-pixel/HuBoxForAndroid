@@ -577,6 +577,11 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             DataStore.smartMode -> getString(R.string.status_smart_routing)
             else -> getString(R.string.status_rule_active)
         }
+        // v1.1.7: route status value in highlight green (light #16A34A /
+        // night #4ADE80 via hubox_highlight_green), same as the mode card.
+        routeValueView?.setTextColor(
+            requireContext().getColor(R.color.hubox_highlight_green)
+        )
     }
 
     private fun updateTodayModule() {
