@@ -130,7 +130,7 @@ class CrashLogActivity : ThemedActivity() {
                 out.bufferedWriter().use { writer ->
                     writer.append("HuBox crash logs export\n")
                     writer.append("App: ").append(BuildConfig.VERSION_NAME)
-                        .append(" (").append(BuildConfig.VERSION_CODE).append(")\n\n")
+                        .append(" (").append(BuildConfig.VERSION_CODE.toString()).append(")\n\n")
                     for (entry in entries) {
                         writer.append("===== ").append(entry.file.name).append(" =====\n")
                         writer.append(CrashLogStore.get().readEntry(entry.file))
