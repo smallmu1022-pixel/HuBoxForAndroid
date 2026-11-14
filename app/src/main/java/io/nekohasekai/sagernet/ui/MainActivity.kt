@@ -203,6 +203,20 @@ class MainActivity : ThemedActivity(),
         val version = DataStore.homeBackgroundVersion
         if (version == appBgVersionApplied) return
         appBgVersionApplied = version
+        // v1.1.7: the main pages are resident (show/hide) and painted an
+        // opaque palette gradient on their roots in onViewCreated, which
+        // covered the window photo. Refresh those roots now so a set or
+        // cleared photo takes effect on every page immediately.
+        for (fragment in supportFragmentManager.fragments) {
+            val root = when (fragment) {
+                is HomeFragment, is ConfigurationFragment, is ToolsFragment,
+                is SettingsFragment, is HomeCustomizeFragment -> fragment.view
+                else -> null
+            }
+            if (root != null) {
+                io.nekohasekai.sagernet.utils.Palette.applyWindowBackground(root)
+            }
+        }
         appBgJob?.cancel()
         val path = DataStore.homeBackground
         if (path.isEmpty()) {
