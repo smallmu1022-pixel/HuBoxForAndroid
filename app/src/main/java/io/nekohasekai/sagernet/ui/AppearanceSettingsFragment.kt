@@ -145,6 +145,10 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
             if (ok) {
                 DataStore.homeBackground = "home_background"
                 DataStore.homeBackgroundVersion++
+                // v1.1.6: apply right away — this save finished after the
+                // activity's onResume, so nothing else would trigger the
+                // window background refresh during this session.
+                (activity as? MainActivity)?.applyAppBackgroundIfNeeded()
                 Toast.makeText(ctx, R.string.home_background_saved, Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(ctx, R.string.home_background_invalid, Toast.LENGTH_SHORT).show()
@@ -157,6 +161,8 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         runCatching { File(requireContext().filesDir, "home_background").delete() }
         DataStore.homeBackground = ""
         DataStore.homeBackgroundVersion++
+        // v1.1.6: same immediate-apply as the save path.
+        (activity as? MainActivity)?.applyAppBackgroundIfNeeded()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
