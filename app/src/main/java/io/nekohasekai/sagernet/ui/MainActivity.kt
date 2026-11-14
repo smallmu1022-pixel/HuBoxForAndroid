@@ -213,20 +213,7 @@ class MainActivity : ThemedActivity(),
         val key = DataStore.homeBackgroundVersion.toString() + "|" +
             DataStore.homeBackground + "|" + if (night) "n" else "d"
         if (key == appBgAppliedKey) return
-        // v1.1.7: the main pages are resident (show/hide) and painted an
-        // opaque palette gradient on their roots in onViewCreated, which
-        // covered the window photo. Refresh those roots now so a set or
-        // cleared photo takes effect on every page immediately.
-        for (fragment in supportFragmentManager.fragments) {
-            val root = when (fragment) {
-                is HomeFragment, is ConfigurationFragment, is ToolsFragment,
-                is SettingsFragment, is HomeCustomizeFragment -> fragment.view
-                else -> null
-            }
-            if (root != null) {
-                io.nekohasekai.sagernet.utils.Palette.applyWindowBackground(root)
-            }
-        }
+        refreshPageRootBackgrounds()
         appBgJob?.cancel()
         val path = DataStore.homeBackground
         if (path.isEmpty()) {
@@ -304,6 +291,26 @@ class MainActivity : ThemedActivity(),
         }
     }
 
+    // v1.1.7: the main pages are resident (show/hide) and painted an
+    // opaque palette gradient on their roots in onViewCreated, which
+    // covered the window photo. Refresh those roots so a set or cleared
+    // photo takes effect on every page immediately. v1.1.9: also called
+    // unconditionally from onResume — the configuration page paints its
+    // own root in onViewCreated, and this repaint is the guarantee that
+    // such a paint never survives a round trip to another app or page.
+    private fun refreshPageRootBackgrounds() {
+        for (fragment in supportFragmentManager.fragments) {
+            val root = when (fragment) {
+                is HomeFragment, is ConfigurationFragment, is ToolsFragment,
+                is SettingsFragment, is HomeCustomizeFragment -> fragment.view
+                else -> null
+            }
+            if (root != null) {
+                io.nekohasekai.sagernet.utils.Palette.applyWindowBackground(root)
+            }
+        }
+    }
+
     private fun setWindowBackground(bitmap: Bitmap?) {
         val old = appBgBitmap
         appBgBitmap = bitmap
@@ -320,6 +327,7 @@ class MainActivity : ThemedActivity(),
     override fun onResume() {
         super.onResume()
         MessageStore.setCurrentActivity(this)
+        refreshPageRootBackgrounds()
         applyAppBackgroundIfNeeded()
 
         if (DataStore.hideFromRecentApps) {
