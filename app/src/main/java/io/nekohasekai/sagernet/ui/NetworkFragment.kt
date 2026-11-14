@@ -102,6 +102,10 @@ class NetworkFragment : NamedFragment(R.layout.layout_network) {
             SendLog.sendLog(requireContext(), "OWN_Diagnostics")
         }
 
+        binding.viewCrashLog.setOnClickListener {
+            startActivity(Intent(requireContext(), CrashLogActivity::class.java))
+        }
+
         binding.localBackupNow.setOnClickListener {
             runOnDefaultDispatcher {
                 val success = BackupHelper.autoBackupLocal()

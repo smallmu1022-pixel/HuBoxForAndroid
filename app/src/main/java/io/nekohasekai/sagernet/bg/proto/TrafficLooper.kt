@@ -1,17 +1,24 @@
 package io.nekohasekai.sagernet.bg.proto
 
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import io.nekohasekai.sagernet.BuildConfig
+import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.aidl.SpeedDisplayData
 import io.nekohasekai.sagernet.aidl.TrafficData
 import io.nekohasekai.sagernet.aidl.TrafficDataBatch
 import io.nekohasekai.sagernet.bg.ActiveOutboundTracker
 import io.nekohasekai.sagernet.bg.BaseService
+import io.nekohasekai.sagernet.bg.CoreWatchdog
 import io.nekohasekai.sagernet.bg.SagerConnection
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.fmt.TAG_BYPASS
 import io.nekohasekai.sagernet.fmt.TAG_PROXY
 import io.nekohasekai.sagernet.ktx.Logs
+import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.utils.CrashLogStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import libcore.Libcore
@@ -23,6 +30,7 @@ class TrafficLooper
 
     companion object {
         private const val TRAFFIC_BATCH_SIZE = 500
+        private const val WATCHDOG_NOTIFICATION_ID = 0x1200
     }
 
     private var job: Job? = null
@@ -102,7 +110,72 @@ class TrafficLooper
     }
 
     fun start() {
+        // HuBox v1.2.0: a user-initiated service start begins a fresh
+        // watchdog session; a watchdog-triggered restart keeps the counters
+        // so the per-session restart cap also covers repeated auto-restarts.
+        if (CoreWatchdog.sharedRestartByWatchdog) {
+            CoreWatchdog.sharedRestartByWatchdog = false
+        } else {
+            CoreWatchdog.shared.resetSession()
+        }
         job = sc.launch { loop() }
+    }
+
+    /**
+     * HuBox v1.2.0: feeds one health-probe result into the shared watchdog.
+     * Ticks only count while the service is fully Connected: during
+     * Connecting/Stopping the probe result says nothing about a hang, and a
+     * user-initiated stop moves the state out of Connected and tears this
+     * looper down, so it can never be "healed" into a restart — hence
+     * `userInitiatedStop` is always false here.
+     */
+    private fun feedWatchdog(probeOk: Boolean) {
+        if (data.state != BaseService.State.Connected) return
+        val fire = CoreWatchdog.shared.onTick(
+            coreRunning = true,
+            probeOk = probeOk,
+            nowMillis = System.currentTimeMillis(),
+            userInitiatedStop = false,
+        )
+        if (fire) onWatchdogRestart()
+    }
+
+    private fun onWatchdogRestart() {
+        Logs.w("CoreWatchdog: core health probe failed repeatedly while connected; restarting service")
+        CoreWatchdog.sharedRestartByWatchdog = true
+        val restartedAt = System.currentTimeMillis()
+        runOnDefaultDispatcher {
+            runCatching {
+                CrashLogStore.get().writeRecord(
+                    "watchdog",
+                    buildString {
+                        append("Watchdog restart: core stopped responding while connected\n")
+                        append("App: ").append(BuildConfig.VERSION_NAME)
+                            .append(" (").append(BuildConfig.VERSION_CODE).append(")\n")
+                        append("Restarted at (epoch ms): ").append(restartedAt).append('\n')
+                        append("The service was restarted automatically by the core watchdog.\n")
+                    }
+                )
+            }
+            postWatchdogNotification()
+        }
+        // Same mechanism the UI uses (Action.RESTART -> stopRunner(restart = true)).
+        SagerNet.restartService()
+    }
+
+    private fun postWatchdogNotification() {
+        runCatching {
+            val context = SagerNet.application
+            val notification = NotificationCompat.Builder(context, "service-vpn-v2")
+                .setSmallIcon(R.drawable.ic_throne_tile)
+                .setContentTitle(context.getString(R.string.core_watchdog_notification_title))
+                .setContentText(context.getString(R.string.core_watchdog_notification_text))
+                .setContentIntent(SagerNet.configureIntent(context))
+                .setAutoCancel(true)
+                .build()
+            NotificationManagerCompat.from(context)
+                .notify(WATCHDOG_NOTIFICATION_ID, notification)
+        }
     }
 
     var selectorNowId = -114514L
@@ -244,6 +317,10 @@ class TrafficLooper
                 continue
             }
 
+            // HuBox v1.2.0: result of this tick's core health probe for the
+            // self-healing watchdog; null when no probe ran this tick.
+            var watchdogProbeOk: Boolean? = null
+
             val snapshot = withStateLock {
                 val currentConfig = proxy.safeConfig ?: return@withStateLock null
                 val balancerMemberMap = currentConfig.balancerMemberMap
@@ -286,7 +363,23 @@ class TrafficLooper
                     proxy.box.setV2rayStats(tags.joinToString("\n"))
                 }
 
-                trafficUpdater!!.updateAll()
+                // HuBox v1.2.0: the stats read doubles as the core health
+                // probe. A dead/hung core makes queryStats throw; previously
+                // that exception killed this loop, now the tick is marked as
+                // a failed probe and the watchdog below decides whether to
+                // restart the service.
+                val probeError = try {
+                    trafficUpdater!!.updateAll()
+                    null
+                } catch (e: Exception) {
+                    Logs.w("TrafficLooper stats probe failed", e)
+                    e
+                }
+                if (probeError != null) {
+                    watchdogProbeOk = false
+                    return@withStateLock null
+                }
+                watchdogProbeOk = true
                 currentCoroutineContext().ensureActive()
 
                 // Accumulate member traffic into Balancer entity
@@ -401,6 +494,10 @@ class TrafficLooper
                 }
                 loopSnapshot
             }
+
+            // HuBox v1.2.0: feed the core watchdog once per probed tick.
+            watchdogProbeOk?.let { probeOk -> feedWatchdog(probeOk) }
+
             if (snapshot == null) {
                 delay(if (isForegroundUI) baseDelayMs else 3000L)
                 continue

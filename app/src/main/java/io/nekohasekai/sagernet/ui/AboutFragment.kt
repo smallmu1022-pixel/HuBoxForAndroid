@@ -7,11 +7,11 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
-import android.text.util.Linkify
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -51,6 +51,13 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // v1.2.0: keep an open-time trace in the log so jank is measurable,
+        // not a matter of feel.
+        val openStartedAt = SystemClock.uptimeMillis()
+        view.doOnPreDraw {
+            Logs.i("About: first frame in ${SystemClock.uptimeMillis() - openStartedAt} ms")
+        }
+
         val binding = LayoutAboutBinding.bind(view)
 
         ViewCompat.setOnApplyWindowInsetsListener(view, ListListener)
@@ -76,11 +83,30 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
             .replace(R.id.about_fragment_holder, AboutContent())
             .commitAllowingStateLoss()
 
+        // v1.2.0: if the package cache is still loading, wait for it off the
+        // main thread and rebuild the content once so plugin items appear
+        // without ever stalling the page open.
+        if (!PackageCache.isLoaded()) {
+            runOnIoDispatcher {
+                PackageCache.awaitLoadSync()
+                if (PackageCache.installedPluginPackages.isNotEmpty()) {
+                    onMainDispatcher {
+                        if (isAdded) {
+                            childFragmentManager.beginTransaction()
+                                .replace(R.id.about_fragment_holder, AboutContent())
+                                .commitAllowingStateLoss()
+                        }
+                    }
+                }
+            }
+        }
+
         runOnDefaultDispatcher {
             val license = view.context.assets.open("LICENSE").bufferedReader().readText()
             onMainDispatcher {
+                // v1.2.0: no Linkify pass over the full license text — it
+                // scanned ~35 KB on the main thread and hitched the page.
                 binding.license.text = license
-                Linkify.addLinks(binding.license, Linkify.EMAIL_ADDRESSES or Linkify.WEB_URLS)
             }
         }
     }
@@ -139,7 +165,11 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                                 .setOnClickAction { }
                                 .build())
                         .apply {
-                            PackageCache.awaitLoadSync()
+                            // v1.2.0: never block the main thread on the full
+                            // package scan here. If the cache is not ready yet,
+                            // skip the plugin items for this build; the outer
+                            // fragment reloads the list once the cache lands.
+                            if (!PackageCache.isLoaded()) return@apply
                             for ((_, pkg) in PackageCache.installedPluginPackages) {
                                 try {
                                     val pluginId =

@@ -37,6 +37,7 @@ import io.nekohasekai.sagernet.ktx.isIpAddressV6
 import io.nekohasekai.sagernet.ktx.unwrapIPV6Host
 import io.nekohasekai.sagernet.ktx.mkPort
 import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
+import io.nekohasekai.sagernet.utils.CrashLogStore
 import io.nekohasekai.sagernet.utils.PackageCache
 import moe.matsuri.nb4a.*
 import moe.matsuri.nb4a.SingBoxOptions.*
@@ -760,6 +761,14 @@ fun buildConfig(
                 3 -> "debug"
                 4 -> "trace"
                 else -> "info"
+            }
+            if (!forTest && !forExport) {
+                // HuBox v1.2.0: persist the core's own log so Go-level
+                // panics/crashes leave an on-device record. The file lives in
+                // the crash log store and is rotated on app start
+                // (see CrashLogStore.rotateCoreLogIfNeeded). Test instances
+                // and exported configs must not point at a device path.
+                output = CrashLogStore.coreLogPath()
             }
         }
 
