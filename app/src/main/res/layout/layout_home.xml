@@ -46,10 +46,10 @@
             android:layout_width="38dp"
             android:layout_height="38dp"
             android:layout_marginEnd="4dp"
-            android:background="@drawable/bg_home_about_tile"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/menu_about"
-            android:padding="8dp"
-            android:src="@drawable/ic_halo_about" />
+            android:padding="7dp"
+            android:src="@drawable/ic_halo" />
     </LinearLayout>
 
     <LinearLayout

@@ -3816,14 +3816,22 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             override fun getItemViewType(position: Int): Int {
-                return if (DataStore.compactProfileRows) 1 else 0
+                return when {
+                    DataStore.compactProfileRows -> 1
+                    DataStore.groupLayoutMode == 1 -> 2
+                    else -> 0
+                }
             }
 
             override fun onCreateViewHolder(
                 parent: ViewGroup,
                 viewType: Int,
             ): ConfigurationHolder {
-                val layoutRes = if (viewType == 1) R.layout.layout_profile_compact else R.layout.layout_profile
+                val layoutRes = when (viewType) {
+                    1 -> R.layout.layout_profile_compact
+                    2 -> R.layout.layout_profile_grid
+                    else -> R.layout.layout_profile
+                }
                 return ConfigurationHolder(
                     LayoutInflater.from(parent.context)
                         .inflate(layoutRes, parent, false)
