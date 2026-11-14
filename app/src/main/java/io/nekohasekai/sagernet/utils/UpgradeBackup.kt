@@ -37,38 +37,47 @@ object UpgradeBackup {
     fun runIfNeeded(context: Context) {
         runCatching {
             val filesDir = context.filesDir ?: return
-            runInternal(
+            val backup = runInternal(
                 filesDir = filesDir,
                 databaseFile = context.getDatabasePath(Key.DB_PROFILE),
                 currentVersionCode = BuildConfig.VERSION_CODE,
                 nowMillis = System.currentTimeMillis(),
                 tmpSuffix = android.os.Process.myPid().toString(),
             )
+            if (backup != null) {
+                Logs.i("UpgradeBackup: database backed up before upgrade -> ${backup.name}")
+            }
         }.onFailure { Logs.w("UpgradeBackup failed (ignored)", it) }
     }
 
+    /**
+     * Core backup logic. Returns the backup file when one was created,
+     * null otherwise. Deliberately free of Android/native calls (no Logs —
+     * Logs routes into the native core library) so plain JVM unit tests
+     * can exercise it.
+     */
     internal fun runInternal(
         filesDir: File,
         databaseFile: File,
         currentVersionCode: Int,
         nowMillis: Long,
         tmpSuffix: String,
-    ) {
+    ): File? {
         val markerFile = File(filesDir, MARKER_FILE_NAME)
         val lastSeen = readMarker(markerFile)
 
-        if (lastSeen == currentVersionCode) return
+        if (lastSeen == currentVersionCode) return null
 
         if (lastSeen != null && lastSeen > currentVersionCode) {
             // Downgrade: just re-baseline so the next real upgrade is seen.
             writeMarker(markerFile, currentVersionCode, tmpSuffix)
-            return
+            return null
         }
 
         if (!databaseFile.isFile) {
             // Fresh install: no database yet, just record the version.
             writeMarker(markerFile, currentVersionCode, tmpSuffix)
-            return
+            return null
         }
 
         // lastSeen == null (first run of this mechanism on an existing
@@ -84,19 +93,20 @@ object UpgradeBackup {
         // CLAIM_STALE_MILLIS is considered abandoned and taken over.
         val claim = File(backupDir, ".claim-$fromVersion-$currentVersionCode")
         if (claim.exists() && nowMillis - claim.lastModified() < CLAIM_STALE_MILLIS) {
-            return
+            return null
         }
         if (!claim.createNewFile()) {
-            if (nowMillis - claim.lastModified() < CLAIM_STALE_MILLIS) return
+            if (nowMillis - claim.lastModified() < CLAIM_STALE_MILLIS) return null
             claim.setLastModified(nowMillis)
         }
 
         try {
             val baseName = "pre-upgrade-$fromVersion-to-$currentVersionCode"
-            copyWithSiblings(databaseFile, File(backupDir, "$baseName.db"), tmpSuffix)
+            val target = File(backupDir, "$baseName.db")
+            copyWithSiblings(databaseFile, target, tmpSuffix)
             pruneBackups(backupDir)
             writeMarker(markerFile, currentVersionCode, tmpSuffix)
-            Logs.i("UpgradeBackup: backed up database before upgrade $fromVersion -> $currentVersionCode")
+            return target
         } finally {
             claim.delete()
         }
