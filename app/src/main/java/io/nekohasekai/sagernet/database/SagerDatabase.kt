@@ -56,6 +56,14 @@ abstract class SagerDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Manual migrations registered in the database builder. Kept as one
+         * list so the builder and the migration-chain regression test
+         * (SagerDatabaseMigrationChainTest) share a single source of truth.
+         */
+        val manualMigrations: List<Migration>
+            get() = listOf(MIGRATION_9_10)
+
         val instance by lazy {
             val app = SagerNet.application
             app.getDatabasePath(Key.DB_PROFILE).parentFile?.mkdirs()
@@ -64,7 +72,7 @@ abstract class SagerDatabase : RoomDatabase() {
                     .setJournalMode(JournalMode.AUTOMATIC)
                     .allowMainThreadQueries()
                     .enableMultiInstanceInvalidation()
-                    .addMigrations(MIGRATION_9_10)
+                    .addMigrations(*manualMigrations.toTypedArray())
                     .setQueryExecutor(kotlinx.coroutines.Dispatchers.IO.asExecutor())
                     .build()
             }

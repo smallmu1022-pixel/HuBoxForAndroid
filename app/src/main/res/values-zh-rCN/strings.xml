@@ -848,6 +848,14 @@
     <string name="dns_direct_warning">检测到直连 DNS 解析（可能存在泄漏）</string>
     <string name="export_crash_log">导出崩溃日志</string>
     <string name="crash_log_empty">暂无崩溃日志记录</string>
+    <string name="crash_log_title">崩溃日志</string>
+    <string name="crash_log_view">查看崩溃日志</string>
+    <string name="crash_log_write_test">生成测试记录</string>
+    <string name="crash_log_export_all">导出全部</string>
+    <string name="crash_log_test_written">测试记录已生成</string>
+    <string name="crash_log_share">分享</string>
+    <string name="core_watchdog_notification_title">核心自愈</string>
+    <string name="core_watchdog_notification_text">检测到核心无响应，已自动重启服务恢复连接。</string>
     <string name="auto_backup_local">本地自动定时备份</string>
     <string name="auto_backup_local_sum">每日自动在应用私有存储中备份节点配置与分流规则</string>
     <string name="subscription_enabled">启用此订阅</string>
@@ -1324,6 +1332,7 @@
     <string name="home_select_node_title">选择节点</string>
     <string name="home_speed_test">测速</string>
     <string name="home_speed_testing">测速中…</string>
+    <string name="home_speed_testing_progress">测速中 %1$d/%2$d</string>
     <string name="home_last_tested">上次测速 %1$s</string>
     <string name="home_never_tested">尚未测速</string>
     <string name="home_time_just_now">刚刚</string>

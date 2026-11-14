@@ -9,6 +9,7 @@ import android.app.ActivityManager
 import android.widget.Toast
 import io.nekohasekai.sagernet.Action
 import io.nekohasekai.sagernet.BootReceiver
+import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.aidl.ISagerNetService
@@ -21,6 +22,7 @@ import androidx.core.app.NotificationManagerCompat
 import io.nekohasekai.sagernet.plugin.PluginManager
 import io.nekohasekai.sagernet.utils.DefaultNetworkListener
 import io.nekohasekai.sagernet.utils.LandingIpManager
+import io.nekohasekai.sagernet.utils.SessionMarker
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -156,6 +158,16 @@ class BaseService {
             if (state == s && msg == null) return
             state = s
             DataStore.serviceState = s
+            // HuBox v1.2.0: maintain the session-alive marker used for
+            // abnormal-exit detection (see SessionMarker / CrashLogStore).
+            runCatching {
+                when (s) {
+                    State.Connected -> SessionMarker.get()
+                        .markConnected(BuildConfig.VERSION_CODE, System.currentTimeMillis())
+                    State.Stopped -> SessionMarker.get().clear()
+                    else -> Unit
+                }
+            }
             binder.stateChanged(s, msg)
             runCatching { io.nekohasekai.sagernet.widget.HuBoxWidgetProvider.updateWidgets(SagerNet.application) }
             if (s == State.Stopping || s == State.Stopped || s == State.Idle) {

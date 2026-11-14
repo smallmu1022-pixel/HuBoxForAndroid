@@ -55,6 +55,10 @@ class SagerNet : Application(),
     override fun onCreate() {
         super.onCreate()
 
+        // HuBox v1.2.0: if this is the first start after an upgrade, back up
+        // the profile database before anything in this process can open it.
+        UpgradeBackup.runIfNeeded(this)
+
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler)
 
         if (isMainProcess || isBgProcess) {
@@ -79,6 +83,32 @@ class SagerNet : Application(),
                     if (DataStore.performancePriorityMode) writeText("1") else delete()
                 }
             }
+            if (isBgProcess) {
+                // HuBox v1.2.0: a leftover session marker means the previous
+                // connected session ended without a clean stop (core panic,
+                // process kill, force stop, ...). Record it in the crash log
+                // store before anything else runs, then rotate the core log.
+                runCatching {
+                    val marker = SessionMarker.get()
+                    marker.read()?.let { info ->
+                        CrashLogStore.get().writeRecord(
+                            "abnormal-exit",
+                            buildString {
+                                append("Abnormal exit: previous service session did not stop cleanly\n")
+                                append("App version code: ").append(info.versionCode).append('\n')
+                                append("Connected since (epoch ms): ")
+                                    .append(info.connectedAtMillis).append('\n')
+                                append("Last known service state: ").append(info.state).append('\n')
+                                append("Detected at (epoch ms): ")
+                                    .append(System.currentTimeMillis()).append('\n')
+                            }
+                        )
+                        marker.clear()
+                    }
+                    CrashLogStore.get().rotateCoreLogIfNeeded()
+                }
+            }
+
             Libcore.initCore(
                 process,
                 cacheDir.absolutePath + "/",

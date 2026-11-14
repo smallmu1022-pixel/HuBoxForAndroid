@@ -944,6 +944,14 @@
     <string name="dns_direct_warning">Direct DNS query detected (possible leak)</string>
     <string name="export_crash_log">Export Crash Log</string>
     <string name="crash_log_empty">No crash logs recorded</string>
+    <string name="crash_log_title">Crash Logs</string>
+    <string name="crash_log_view">View Crash Logs</string>
+    <string name="crash_log_write_test">Write Test Record</string>
+    <string name="crash_log_export_all">Export All</string>
+    <string name="crash_log_test_written">Test record written</string>
+    <string name="crash_log_share">Share</string>
+    <string name="core_watchdog_notification_title">Core self-healing</string>
+    <string name="core_watchdog_notification_text">The core stopped responding, so the service was restarted automatically to restore the connection.</string>
     <string name="auto_backup_local">Local Scheduled Auto-Backup</string>
     <string name="auto_backup_local_sum">Automatically back up profiles daily to local storage</string>
     <string name="subscription_enabled">Subscription enabled</string>
@@ -1406,6 +1414,7 @@
     <string name="home_select_node_title">Select node</string>
     <string name="home_speed_test">Speed test</string>
     <string name="home_speed_testing">Testing…</string>
+    <string name="home_speed_testing_progress">Testing %1$d/%2$d</string>
     <string name="home_last_tested">Last tested %1$s</string>
     <string name="home_never_tested">Not tested yet</string>
     <string name="home_time_just_now">just now</string>

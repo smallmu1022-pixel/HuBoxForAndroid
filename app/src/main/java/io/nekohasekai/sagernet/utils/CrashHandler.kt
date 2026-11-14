@@ -35,6 +35,32 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         } catch (e: Exception) {
         }
 
+        // HuBox v1.2.0: persist a durable crash record on-device so the crash
+        // can be reviewed/exported later (see CrashLogStore / CrashLogActivity).
+        // Kept free of database access on purpose: the DB may be what died.
+        try {
+            CrashLogStore.get().writeRecord(
+                "crash",
+                buildString {
+                    append("Java crash: ").append(throwable.javaClass.name)
+                    throwable.message?.takeIf { it.isNotBlank() }
+                        ?.let { append(": ").append(it) }
+                    append('\n')
+                    append("App: ").append(BuildConfig.VERSION_NAME)
+                        .append(" (").append(BuildConfig.VERSION_CODE).append(")\n")
+                    append("Process: ").append(app.process).append('\n')
+                    append("Thread: ").append(thread.name).append("\n\n")
+                    append(formatThrowable(throwable))
+                }
+            )
+            if (app.isBgProcess) {
+                // This crash is already documented above; do not let the
+                // rebirth also report it as an abnormal service exit.
+                SessionMarker.get().clear()
+            }
+        } catch (e: Exception) {
+        }
+
         ProcessPhoenix.triggerRebirth(app, Intent(app, BlankActivity::class.java).apply {
             putExtra("sendLog", "OWN Crash")
         })

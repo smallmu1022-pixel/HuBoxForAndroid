@@ -104,6 +104,9 @@ object PackageCache {
     operator fun get(uid: Int) = uidMap[uid]
     operator fun get(packageName: String) = packageMap[packageName]
 
+    /** Cheap, non-blocking: true once the first full reload has finished. */
+    fun isLoaded(): Boolean = ::packageMap.isInitialized
+
     fun awaitLoadSync() {
         if (::packageMap.isInitialized) {
             return

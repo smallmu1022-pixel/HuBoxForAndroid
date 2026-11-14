@@ -31,7 +31,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.supervisorScope
 import moe.matsuri.nb4a.utils.Util
-import moe.matsuri.nb4a.utils.toBytesString
 import java.lang.NumberFormatException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -497,6 +496,21 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
             }
         }
 
+        // v1.2.0: compact byte display for the group card ("320.5 GB", "1 TB"):
+        // 1024-based, at most one decimal, trailing ".0" stripped.
+        private fun Long.toCompactBytesString(): String {
+            if (this == 0L) return "0 B"
+            val units = arrayOf("B", "KB", "MB", "GB", "TB")
+            var value = this.toDouble()
+            var idx = 0
+            while (value >= 1024.0 && idx < units.lastIndex) {
+                value /= 1024.0
+                idx++
+            }
+            val text = String.format("%.1f", value).removeSuffix(".0")
+            return "$text ${units[idx]}"
+        }
+
         private fun renderSubscriptionInfo(
             expireMillis: Long,
             usedBytes: Long,
@@ -508,18 +522,13 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
             val secondaryColor = itemView.context.getColorAttr(android.R.attr.textColorSecondary)
             val isExpired = expireMillis > 0L && System.currentTimeMillis() > expireMillis
 
-            if (expireMillis > 0L) {
-                val dateStr = SimpleDateFormat("yyyy年M月d日", Locale.getDefault()).format(Date(expireMillis))
-                if (isExpired) {
-                    groupUser.text = "· 已过期（到期时间：$dateStr）"
-                    groupUser.setTextColor(Color.parseColor("#E53935"))
-                } else {
-                    groupUser.text = "· 到期时间：$dateStr"
-                    groupUser.setTextColor(secondaryColor)
-                }
+            // v1.2.0: the name row keeps only the group name; the expiry moved
+            // into the status line below (see groupStatus composition).
+            groupUser.isGone = true
+            val dateStr = if (expireMillis > 0L) {
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(expireMillis))
             } else {
-                groupUser.text = "· 到期时间：长期有效"
-                groupUser.setTextColor(secondaryColor)
+                null
             }
 
             if (totalBytes > 0L) {
@@ -536,9 +545,9 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
             }
 
             val usageStr = if (totalBytes > 0L) {
-                "${usedBytes.toBytesString()} / ${totalBytes.toBytesString()}"
+                "${usedBytes.toCompactBytesString()} / ${totalBytes.toCompactBytesString()}"
             } else if (usedBytes > 0L) {
-                "${usedBytes.toBytesString()} / 不限量"
+                "${usedBytes.toCompactBytesString()} / 不限量"
             } else if (fallbackTrafficStr != null) {
                 if (fallbackUsedStr != null) "$fallbackUsedStr / $fallbackTrafficStr" else fallbackTrafficStr
             } else {
@@ -551,18 +560,35 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
                 getString(R.string.group_status_empty_subscription)
             }
 
-            groupStatus.text = if (totalBytes > 0L || usedBytes > 0L || fallbackTrafficStr != null || lastUpdatedSec > 0L) {
-                "$usageStr · $timeStr"
-            } else {
-                getString(R.string.group_status_empty_subscription)
+            // v1.2.0: one compact status line — usage · expiry · last updated.
+            // An expired subscription leads the line and turns it red.
+            val hasUsage = totalBytes > 0L || usedBytes > 0L || fallbackTrafficStr != null
+            val parts = mutableListOf<String>()
+            if (isExpired) parts += "已过期 $dateStr"
+            if (hasUsage) parts += usageStr
+            if (!isExpired) {
+                if (dateStr != null) parts += "到期 $dateStr"
+                else if (hasUsage || lastUpdatedSec > 0L) parts += "长期有效"
             }
+            if (lastUpdatedSec > 0L) parts += timeStr
+
+            groupStatus.text = if (parts.isEmpty()) {
+                getString(R.string.group_status_empty_subscription)
+            } else {
+                parts.joinToString(" · ")
+            }
+            groupStatus.setTextColor(
+                if (isExpired) Color.parseColor("#E53935") else secondaryColor
+            )
         }
 
         private fun renderBasicInfo(size: Long) {
             val secondaryColor = itemView.context.getColorAttr(android.R.attr.textColorSecondary)
+            groupUser.isGone = false
             groupUser.text = "· 本地配置"
             groupUser.setTextColor(secondaryColor)
             groupTrafficProgress.isGone = true
+            groupStatus.setTextColor(secondaryColor)
             groupStatus.text = if (size == 0L) {
                 getString(R.string.group_status_empty)
             } else {
@@ -633,6 +659,7 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
                 if (!DataStore.compactGroupCards) {
                     groupTrafficProgress.isGone = true
                     val subscription = proxyGroup.subscription
+                    groupUser.isGone = false
                     groupUser.text = subscription?.link.orEmpty()
                     groupUser.setTextColor(itemView.context.getColorAttr(android.R.attr.textColorSecondary))
                     runOnDefaultDispatcher {
@@ -642,6 +669,7 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
                         } else ""
                         val countStr = getString(R.string.group_status_proxies, size)
                         onMainDispatcher {
+                            groupStatus.setTextColor(itemView.context.getColorAttr(android.R.attr.textColorSecondary))
                             groupStatus.text = if (timeStr.isNotEmpty()) "$countStr · $timeStr" else countStr
                         }
                     }

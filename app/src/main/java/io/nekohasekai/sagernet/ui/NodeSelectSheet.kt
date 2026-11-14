@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.ui
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -155,6 +156,17 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
         dismiss()
     }
 
+    /** Fastest first; failed / untested nodes sink to the bottom. */
+    private fun sortByLatency(list: List<ProxyEntity>): List<ProxyEntity> {
+        return list.sortedWith(
+            compareBy<ProxyEntity> {
+                if (it.status == 1 && it.ping > 0) 0 else 1
+            }.thenBy {
+                if (it.status == 1 && it.ping > 0) it.ping else Int.MAX_VALUE
+            }.thenBy { it.userOrder },
+        )
+    }
+
     private fun startGroupTest(manual: Boolean) {
         if (testing || profiles.isEmpty()) return
         if (DataStore.runningTest) return
@@ -165,6 +177,16 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
 
         val targets = profiles
         val appCtx = requireContext().applicationContext
+        // v1.2.0: progress + live re-sort state (touched on the main thread only).
+        var doneCount = 0
+        var lastLiveResortAt = 0L
+        fun liveResort() {
+            val now = SystemClock.uptimeMillis()
+            if (now - lastLiveResortAt < 400L) return
+            lastLiveResortAt = now
+            profiles = sortByLatency(profiles)
+            adapter.submit(profiles, DataStore.selectedProxy)
+        }
         testJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 coroutineScope {
@@ -186,8 +208,14 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
                                 }
                                 var failure: String? = null
                                 val result = try {
+                                    // v1.2.0: the watchdog used to allow
+                                    // 2x timeout + 2.5s (8.5s at the 3s
+                                    // default), so one hung instance stalled
+                                    // its worker — and the whole round — for
+                                    // far too long. timeout + 2.5s still
+                                    // covers instance spin-up comfortably.
                                     withTimeoutOrNull(
-                                        DataStore.connectionTestTimeout.toLong() * 2 + 2500L,
+                                        DataStore.connectionTestTimeout.toLong() + 2500L,
                                     ) {
                                         url.doTest(entity)
                                     }
@@ -220,6 +248,17 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
                                         profiles = profiles.toMutableList().also { it[index] = entity }
                                         adapter.notifyItemChanged(index)
                                     }
+                                    // v1.2.0: show round progress on the
+                                    // button and float fresh results to the
+                                    // top live instead of only at the end.
+                                    doneCount++
+                                    if (testing && isAdded) {
+                                        testButton.text = getString(
+                                            R.string.home_speed_testing_progress,
+                                            doneCount, targets.size,
+                                        )
+                                        liveResort()
+                                    }
                                 }
                             }
                         }
@@ -240,13 +279,7 @@ class NodeSelectSheet : BottomSheetDialogFragment() {
                     testButton.text = getString(R.string.home_speed_test)
                     // HuBox v1.1.2: after a test round, order by latency —
                     // fastest first, failed/untested nodes sink to the bottom.
-                    profiles = profiles.sortedWith(
-                        compareBy<ProxyEntity> {
-                            if (it.status == 1 && it.ping > 0) 0 else 1
-                        }.thenBy {
-                            if (it.status == 1 && it.ping > 0) it.ping else Int.MAX_VALUE
-                        }.thenBy { it.userOrder },
-                    )
+                    profiles = sortByLatency(profiles)
                     adapter.submit(profiles, DataStore.selectedProxy)
                     updateFreshness()
                     onChanged?.invoke()
