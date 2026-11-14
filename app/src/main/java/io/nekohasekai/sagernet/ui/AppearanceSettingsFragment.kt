@@ -29,6 +29,7 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.bg.LiveUpdateFormatter
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.FixedLinearLayoutManager
+import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.utils.AppLocale
@@ -71,20 +72,30 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) {
                 runCatching {
+                    // Read the picker stream exactly once into a temp file,
+                    // then work from the file. (v1.1.4 opened the content
+                    // stream twice and some galleries/photo pickers refuse
+                    // or corrupt the second read — "image cannot be used".)
+                    val tmp = File(ctx.filesDir, "home_background.tmp")
+                    val copied = ctx.contentResolver.openInputStream(uri)?.use { input ->
+                        tmp.outputStream().use { output -> input.copyTo(output) }
+                        true
+                    } ?: false
+                    if (!copied) return@runCatching false
                     // Accept anything the system can decode (jpg/png/webp/
                     // gif/bmp/heic/...); reject non-images.
-                    val resolver = ctx.contentResolver
                     val bounds = android.graphics.BitmapFactory.Options().apply {
                         inJustDecodeBounds = true
                     }
-                    resolver.openInputStream(uri)?.use { input ->
-                        android.graphics.BitmapFactory.decodeStream(input, null, bounds)
-                    } ?: return@runCatching false
-                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching false
-                    // HuBox v1.1.4: do not keep the original multi-MB photo.
-                    // Decode sampled (long edge lands near 1920px), scale to
-                    // at most 1920px and re-encode — the stored copy drops
-                    // to a few hundred KB and every later decode is bounded.
+                    android.graphics.BitmapFactory.decodeFile(tmp.absolutePath, bounds)
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                        tmp.delete()
+                        return@runCatching false
+                    }
+                    // Do not keep the original multi-MB photo: decode
+                    // sampled (long edge lands near 1920px), scale to at
+                    // most 1920px and re-encode — the stored copy drops to
+                    // a few hundred KB and every later decode is bounded.
                     var sample = 1
                     while (sample <= 32 &&
                         bounds.outWidth / (sample * 2) >= 960 &&
@@ -92,14 +103,15 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                     ) {
                         sample *= 2
                     }
-                    val decoded = resolver.openInputStream(uri)?.use { input ->
-                        android.graphics.BitmapFactory.decodeStream(
-                            input, null,
-                            android.graphics.BitmapFactory.Options().apply {
-                                inSampleSize = sample
-                            },
-                        )
-                    } ?: return@runCatching false
+                    val decoded = android.graphics.BitmapFactory.decodeFile(
+                        tmp.absolutePath,
+                        android.graphics.BitmapFactory.Options().apply {
+                            inSampleSize = sample
+                        },
+                    ) ?: run {
+                        tmp.delete()
+                        return@runCatching false
+                    }
                     val longEdge = maxOf(decoded.width, decoded.height)
                     val scaled = if (longEdge > 1920) {
                         val ratio = 1920f / longEdge
@@ -124,7 +136,10 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                     }
                     if (scaled !== decoded) scaled.recycle()
                     decoded.recycle()
+                    tmp.delete()
                     saved
+                }.onFailure {
+                    Logs.w("home background save failed", it)
                 }.getOrDefault(false)
             }
             if (ok) {
