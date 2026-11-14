@@ -16,24 +16,27 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.nekohasekai.sagernet.R
-import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.AppTrafficRecorder
+import io.nekohasekai.sagernet.utils.AppTrafficLedger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 
 /**
- * HuBox v1.1.0: per-app traffic ranking.
+ * Per-app traffic ranking.
  *
- * Data source: the Clash API connection list (http://127.0.0.1:9090/
- * connections). Each live connection carries cumulative upload/download
- * counters and — when process lookup is available — the owning process,
- * which on Android is the app package/process name. Connections are
- * aggregated per app and ranked by total bytes. The numbers cover current
- * connections only; they reset when connections close.
+ * HuBox v1.1.0 read the Clash API connection list directly, which only
+ * ever showed the connections open at that moment, keyed by host name
+ * (the core leaves `metadata.process` empty on-device, so no app names
+ * or icons were possible).
+ *
+ * HuBox v1.2.2 reads today's persistent ledger instead:
+ * [AppTrafficRecorder] samples the connection list from the service,
+ * resolves each connection's owning app and books the byte deltas into
+ * [AppTrafficLedger]. The ranking therefore covers everything that
+ * flowed while connected — including connections that have long closed.
+ * Keys are package names, or `"host:<host>"` when the owner of a
+ * connection could not be determined.
  */
 class AppTrafficActivity : ThemedActivity() {
 
@@ -78,46 +81,28 @@ class AppTrafficActivity : ThemedActivity() {
     }
 
     private fun fetchRanking(): List<AppTraffic> {
-        if (!DataStore.serviceState.connected) return emptyList()
-        val client = OkHttpClient.Builder()
-            .connectTimeout(3, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
-            .build()
-        val request = Request.Builder()
-            .url("http://127.0.0.1:9090/connections")
-            .header("Authorization", "Bearer ${DataStore.clashApiSecret}")
-            .build()
-        val body = runCatching {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) null else response.body?.string()
-            }
-        }.getOrNull() ?: return emptyList()
-
-        val connections = runCatching {
-            JSONObject(body).optJSONArray("connections")
-        }.getOrNull() ?: return emptyList()
-
-        data class Acc(var upload: Long = 0L, var download: Long = 0L)
-
-        val byKey = mutableMapOf<String, Acc>()
-        for (i in 0 until connections.length()) {
-            val connection = connections.optJSONObject(i) ?: continue
-            val metadata = connection.optJSONObject("metadata") ?: continue
-            val process = metadata.optString("process").trim()
-            val host = metadata.optString("host").trim()
-                .ifBlank { metadata.optString("destinationIP").trim() }
-            val key = process.ifBlank { host }
-            if (key.isBlank()) continue
-            val acc = byKey.getOrPut(key) { Acc() }
-            acc.upload += connection.optLong("upload")
-            acc.download += connection.optLong("download")
-        }
+        // One fresh sample first so the ranking includes traffic up to
+        // this second; the recorder no-ops when disconnected or throttled
+        // by its own failure handling, and the ledger read below still
+        // returns everything booked earlier (also while disconnected).
+        AppTrafficRecorder.sampleTick(force = true)
+        val snapshot = AppTrafficRecorder.ledger().snapshot(AppTrafficLedger.today())
 
         val pm = packageManager
-        return byKey.entries
+        return snapshot.entries
             .map { (key, acc) ->
-                val (label, icon) = resolveApp(pm, key)
-                AppTraffic(key, label, icon, acc.upload, acc.download)
+                if (key.startsWith(AppTrafficRecorder.HOST_PREFIX)) {
+                    AppTraffic(
+                        key,
+                        key.removePrefix(AppTrafficRecorder.HOST_PREFIX),
+                        null,
+                        acc[0],
+                        acc[1],
+                    )
+                } else {
+                    val (label, icon) = resolveApp(pm, key)
+                    AppTraffic(key, label, icon, acc[0], acc[1])
+                }
             }
             .filter { it.total > 0 }
             .sortedByDescending { it.total }
@@ -126,13 +111,13 @@ class AppTrafficActivity : ThemedActivity() {
     private var installedAppsCache: List<ApplicationInfo>? = null
 
     /**
-     * Resolve a connection's process string to a display label and the real
-     * app icon. The process field may be a plain package name, a package
-     * with a sub-process suffix ("pkg:push"), or a bare process/label
-     * string, so resolution tries the package directly first, then matches
-     * process name, then the app label across installed packages. Host-keyed
-     * rows (no process info) keep the raw key and the placeholder icon.
-     * Runs on the IO thread from fetchRanking.
+     * Resolve a ledger key to a display label and the real app icon. The
+     * key may be a plain package name, a package with a sub-process
+     * suffix ("pkg:push"), or a bare process/label string, so resolution
+     * tries the package directly first, then matches process name, then
+     * the app label across installed packages. Unresolvable keys keep the
+     * raw key and the placeholder icon. Runs on the IO thread from
+     * fetchRanking.
      */
     private fun resolveApp(pm: PackageManager, rawKey: String): Pair<String, Drawable?> {
         val pkg = rawKey.substringBefore(':').trim()

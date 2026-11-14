@@ -1319,6 +1319,8 @@
     <string name="home_background_set">Custom image</string>
     <string name="home_background_clear">Remove home background</string>
     <string name="home_background_saved">Background updated</string>
+    <string name="home_custom_name_title">Custom name</string>
+    <string name="home_custom_name_hint">Leave empty for default</string>
     <string name="home_background_invalid">This image cannot be used</string>
     <string name="cag_notification">Notification</string>
     <string name="notification_next">Next</string>
@@ -1456,7 +1458,7 @@
     <string name="ping_history_stats">Latest %1$dms · Avg %2$dms · Min %3$dms · Max %4$dms</string>
     <string name="session_label">Session</string>
     <string name="app_traffic_title">App traffic ranking</string>
-    <string name="app_traffic_hint">Live traffic by app, aggregated from current connections</string>
+    <string name="app_traffic_hint">Today\'s per-app traffic via HuBox · recorded while connected</string>
     <string name="app_traffic_empty">No connection data yet. Connect first and make sure the Clash API is enabled.</string>
     <string name="app_traffic_total">Total</string>
     <string name="settings_group_common">Common</string>
