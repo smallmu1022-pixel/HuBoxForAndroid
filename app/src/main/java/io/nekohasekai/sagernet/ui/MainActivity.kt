@@ -85,7 +85,7 @@ class MainActivity : ThemedActivity(),
     // window so it covers every page, the top bars and the area around
     // the floating bottom nav. One shared decoded bitmap for the whole
     // activity; page roots are transparent and let it show through.
-    private var appBgVersionApplied = -1
+    private var appBgAppliedKey: String? = null
     private var appBgBitmap: Bitmap? = null
     private var appBgJob: Job? = null
 
@@ -200,9 +200,19 @@ class MainActivity : ThemedActivity(),
     // onResume, so without a direct call the new background would only show
     // up at the next activity resume (v1.1.5 bug: saved but never displayed).
     internal fun applyAppBackgroundIfNeeded() {
-        val version = DataStore.homeBackgroundVersion
-        if (version == appBgVersionApplied) return
-        appBgVersionApplied = version
+        // v1.1.8: the applied marker is written only AFTER the bitmap is
+        // actually on the window. Before, the version was consumed before
+        // the async decode ran, so a single transient decode failure (or a
+        // cancelled job) lost the photo for the rest of the session with
+        // no retry — the "photo sometimes suddenly gone" report. The key
+        // also carries the night flag: this activity handles uiMode itself
+        // (configChanges="uiMode"), so a day/night flip keeps the instance
+        // alive and the scrim baked into the bitmap must be redone.
+        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+        val key = DataStore.homeBackgroundVersion.toString() + "|" +
+            DataStore.homeBackground + "|" + if (night) "n" else "d"
+        if (key == appBgAppliedKey) return
         // v1.1.7: the main pages are resident (show/hide) and painted an
         // opaque palette gradient on their roots in onViewCreated, which
         // covered the window photo. Refresh those roots now so a set or
@@ -221,6 +231,7 @@ class MainActivity : ThemedActivity(),
         val path = DataStore.homeBackground
         if (path.isEmpty()) {
             setWindowBackground(null)
+            appBgAppliedKey = key
             return
         }
         val appCtx = applicationContext
@@ -237,8 +248,6 @@ class MainActivity : ThemedActivity(),
             targetW = (targetW * ratio).toInt().coerceAtLeast(1)
             targetH = (targetH * ratio).toInt().coerceAtLeast(1)
         }
-        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
         appBgJob = lifecycleScope.launch {
             val bitmap = withContext(Dispatchers.IO) {
                 runCatching {
@@ -283,7 +292,15 @@ class MainActivity : ThemedActivity(),
                 bitmap?.recycle()
                 return@launch
             }
+            if (bitmap == null) {
+                // Decode failed although a photo is set: keep whatever is
+                // on the window now and leave the key unset, so the next
+                // onResume retries instead of losing the photo for the
+                // whole session (v1.1.8).
+                return@launch
+            }
             setWindowBackground(bitmap)
+            appBgAppliedKey = key
         }
     }
 
