@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -19,9 +20,20 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceDataStore
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.view.ViewGroup
 import android.widget.TextView
 import com.google.android.material.snackbar.Snackbar
@@ -68,6 +80,14 @@ class MainActivity : ThemedActivity(),
 
     lateinit var binding: LayoutMainBinding
     private var currentMainFragment: ToolbarFragment? = null
+
+    // HuBox v1.1.4: the custom background image lives on the activity
+    // window so it covers every page, the top bars and the area around
+    // the floating bottom nav. One shared decoded bitmap for the whole
+    // activity; page roots are transparent and let it show through.
+    private var appBgVersionApplied = -1
+    private var appBgBitmap: Bitmap? = null
+    private var appBgJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -171,11 +191,99 @@ class MainActivity : ThemedActivity(),
                 }
                 .show()
         }
+
+        applyAppBackgroundIfNeeded()
+    }
+
+    private fun applyAppBackgroundIfNeeded() {
+        val version = DataStore.homeBackgroundVersion
+        if (version == appBgVersionApplied) return
+        appBgVersionApplied = version
+        appBgJob?.cancel()
+        val path = DataStore.homeBackground
+        if (path.isEmpty()) {
+            setWindowBackground(null)
+            return
+        }
+        val appCtx = applicationContext
+        val metrics = resources.displayMetrics
+        // Cap the decode at the window size, long edge at most 1440px —
+        // a full-res phone photo would cost ~10MB of bitmap; at 1440px
+        // behind the scrim and glass cards it is ~4MB and visually the
+        // same. The stored copy is already downscaled at pick time.
+        var targetW = metrics.widthPixels.coerceAtLeast(1)
+        var targetH = metrics.heightPixels.coerceAtLeast(1)
+        val longEdge = maxOf(targetW, targetH)
+        if (longEdge > 1440) {
+            val ratio = 1440f / longEdge
+            targetW = (targetW * ratio).toInt().coerceAtLeast(1)
+            targetH = (targetH * ratio).toInt().coerceAtLeast(1)
+        }
+        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+        appBgJob = lifecycleScope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    val file = File(appCtx.filesDir, path)
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeFile(file.absolutePath, bounds)
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+                    var sample = 1
+                    while (sample <= 32 &&
+                        bounds.outWidth / (sample * 2) >= targetW &&
+                        bounds.outHeight / (sample * 2) >= targetH
+                    ) {
+                        sample *= 2
+                    }
+                    val raw = BitmapFactory.decodeFile(
+                        file.absolutePath,
+                        BitmapFactory.Options().apply { inSampleSize = sample },
+                    ) ?: return@runCatching null
+                    val scale = (targetW.toFloat() / raw.width)
+                        .coerceAtLeast(targetH.toFloat() / raw.height)
+                    val scaledW = (raw.width * scale).toInt().coerceAtLeast(1)
+                    val scaledH = (raw.height * scale).toInt().coerceAtLeast(1)
+                    val scaled = Bitmap.createScaledBitmap(raw, scaledW, scaledH, true)
+                    if (scaled !== raw) raw.recycle()
+                    val cropW = targetW.coerceAtMost(scaledW)
+                    val cropH = targetH.coerceAtMost(scaledH)
+                    val x = ((scaledW - cropW) / 2).coerceAtLeast(0)
+                    val y = ((scaledH - cropH) / 2).coerceAtLeast(0)
+                    val cropped = Bitmap.createBitmap(scaled, x, y, cropW, cropH)
+                    if (cropped !== scaled) scaled.recycle()
+                    val out = cropped.copy(Bitmap.Config.ARGB_8888, true)
+                    if (out !== cropped) cropped.recycle()
+                    Canvas(out).drawColor(
+                        if (night) Color.argb(96, 6, 14, 30) else Color.argb(80, 255, 255, 255)
+                    )
+                    out
+                }.getOrNull()
+            }
+            if (isFinishing || isDestroyed) {
+                bitmap?.recycle()
+                return@launch
+            }
+            setWindowBackground(bitmap)
+        }
+    }
+
+    private fun setWindowBackground(bitmap: Bitmap?) {
+        val old = appBgBitmap
+        appBgBitmap = bitmap
+        window.setBackgroundDrawable(
+            if (bitmap != null) {
+                BitmapDrawable(resources, bitmap)
+            } else {
+                ContextCompat.getDrawable(this, R.drawable.bg_glass_window)
+            }
+        )
+        if (old != null && old !== bitmap && !old.isRecycled) old.recycle()
     }
 
     override fun onResume() {
         super.onResume()
         MessageStore.setCurrentActivity(this)
+        applyAppBackgroundIfNeeded()
 
         if (DataStore.hideFromRecentApps) {
             applyHideFromRecentApps(DataStore.hideFromRecentApps)
@@ -638,6 +746,7 @@ class MainActivity : ThemedActivity(),
     // ONLY do UI update here, write DB in bg process
     override fun cbSpeedUpdate(stats: SpeedDisplayData) {
         (currentMainFragment as? HomeFragment)?.updateSpeed(stats.txRateProxy, stats.rxRateProxy)
+        (currentMainFragment as? HomeFragment)?.updateSessionTraffic(stats.txTotal, stats.rxTotal)
     }
 
     override suspend fun cbTrafficUpdate(data: TrafficDataBatch) {
@@ -687,6 +796,9 @@ class MainActivity : ThemedActivity(),
 
     override fun onDestroy() {
         super.onDestroy()
+        appBgJob?.cancel()
+        appBgBitmap?.recycle()
+        appBgBitmap = null
         GroupManager.userInterface = null
         DataStore.configurationStore.unregisterChangeListener(this)
         connection.disconnect(this)

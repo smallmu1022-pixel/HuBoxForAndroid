@@ -71,24 +71,60 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) {
                 runCatching {
-                    val target = File(ctx.filesDir, "home_background")
-                    val copied = ctx.contentResolver.openInputStream(uri)?.use { input ->
-                        target.outputStream().use { output -> input.copyTo(output) }
-                        true
-                    } ?: false
-                    if (!copied) return@runCatching false
                     // Accept anything the system can decode (jpg/png/webp/
                     // gif/bmp/heic/...); reject non-images.
-                    val opts = android.graphics.BitmapFactory.Options().apply {
+                    val resolver = ctx.contentResolver
+                    val bounds = android.graphics.BitmapFactory.Options().apply {
                         inJustDecodeBounds = true
                     }
-                    android.graphics.BitmapFactory.decodeFile(target.absolutePath, opts)
-                    if (opts.outWidth <= 0 || opts.outHeight <= 0) {
-                        target.delete()
-                        false
-                    } else {
-                        true
+                    resolver.openInputStream(uri)?.use { input ->
+                        android.graphics.BitmapFactory.decodeStream(input, null, bounds)
+                    } ?: return@runCatching false
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching false
+                    // HuBox v1.1.4: do not keep the original multi-MB photo.
+                    // Decode sampled (long edge lands near 1920px), scale to
+                    // at most 1920px and re-encode — the stored copy drops
+                    // to a few hundred KB and every later decode is bounded.
+                    var sample = 1
+                    while (sample <= 32 &&
+                        bounds.outWidth / (sample * 2) >= 960 &&
+                        bounds.outHeight / (sample * 2) >= 960
+                    ) {
+                        sample *= 2
                     }
+                    val decoded = resolver.openInputStream(uri)?.use { input ->
+                        android.graphics.BitmapFactory.decodeStream(
+                            input, null,
+                            android.graphics.BitmapFactory.Options().apply {
+                                inSampleSize = sample
+                            },
+                        )
+                    } ?: return@runCatching false
+                    val longEdge = maxOf(decoded.width, decoded.height)
+                    val scaled = if (longEdge > 1920) {
+                        val ratio = 1920f / longEdge
+                        android.graphics.Bitmap.createScaledBitmap(
+                            decoded,
+                            (decoded.width * ratio).toInt().coerceAtLeast(1),
+                            (decoded.height * ratio).toInt().coerceAtLeast(1),
+                            true,
+                        )
+                    } else {
+                        decoded
+                    }
+                    val target = File(ctx.filesDir, "home_background")
+                    val saved = target.outputStream().use { out ->
+                        if (scaled.hasAlpha()) {
+                            scaled.compress(
+                                android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                        } else {
+                            scaled.compress(
+                                android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+                        }
+                    }
+                    if (scaled !== decoded) scaled.recycle()
+                    decoded.recycle()
+                    saved
                 }.getOrDefault(false)
             }
             if (ok) {
