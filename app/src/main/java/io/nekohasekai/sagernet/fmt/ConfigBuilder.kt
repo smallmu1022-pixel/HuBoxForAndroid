@@ -136,6 +136,17 @@ internal fun buildSelectorOutbound(defaultTag: String?, memberTags: List<String>
         interrupt_exist_connections = false
     }
 
+// HuBox v1.1.5: core probe intervals follow the battery saver mode.
+// Performance stays responsive (half the configured interval), balanced
+// uses it as-is, extreme stretches it to 3x.
+internal fun saverScaledProbeInterval(baseSec: Long): Long {
+    return when (runCatching { DataStore.batterySaverMode }.getOrNull()) {
+        "performance" -> (baseSec / 2).coerceAtLeast(10L)
+        "extreme" -> baseSec * 3
+        else -> baseSec
+    }
+}
+
 internal fun buildLoadBalanceOutbound(
     memberTags: List<String>,
     strategy: String? = null,
@@ -155,7 +166,7 @@ internal fun buildLoadBalanceOutbound(
         url = testUrl?.takeIf { it.isNotBlank() }
             ?: runCatching { DataStore.connectionTestURL }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: "https://cp.cloudflare.com/generate_204"
-        val iv = (intervalSec?.takeIf { it > 0 } ?: 60L).coerceAtLeast(10L)
+        val iv = saverScaledProbeInterval((intervalSec?.takeIf { it > 0 } ?: 60L).coerceAtLeast(10L))
         interval = "${iv}s"
         tolerance = toleranceMs?.takeIf { it >= 0 } ?: 50
         idle_timeout = idleTimeoutStr?.takeIf { it.isNotBlank() } ?: "${iv}s"
@@ -178,7 +189,7 @@ internal fun buildUrlTestOutbound(
         url = testUrl?.takeIf { it.isNotBlank() }
             ?: runCatching { DataStore.connectionTestURL }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: "https://cp.cloudflare.com/generate_204"
-        val iv = (intervalSec?.takeIf { it > 0 } ?: 60L).coerceAtLeast(10L)
+        val iv = saverScaledProbeInterval((intervalSec?.takeIf { it > 0 } ?: 60L).coerceAtLeast(10L))
         interval = "${iv}s"
         tolerance = toleranceMs?.takeIf { it >= 0 } ?: 50
         // Enforce minimum 10-minute idle_timeout regardless of memory mode.
@@ -1228,9 +1239,15 @@ fun buildConfig(
                     _hack_config_map["domain_strategy"] = defaultServerDomainStrategy
                     _hack_config_map["fallback_delay"] = "100ms"
                     _hack_config_map["tcp_keep_alive"] = "45s"
-                    // HuBox v1.1.4 power: 30s keepalive woke the radio twice a
-                    // minute per idle connection; 5m is plenty for NAT mapping.
-                    _hack_config_map["tcp_keep_alive_interval"] = "5m"
+                    // HuBox v1.1.5: keepalive cadence follows the battery
+                    // saver mode (v1.1.4 fixed it at 5m for everyone):
+                    // performance 30s, balanced 5m, extreme 15m.
+                    _hack_config_map["tcp_keep_alive_interval"] =
+                        when (DataStore.batterySaverMode) {
+                            "performance" -> "30s"
+                            "extreme" -> "15m"
+                            else -> "5m"
+                        }
                     _hack_config_map["connect_timeout"] = "5s"
 
                     // 确保所有出站代理节点服务器域名强制使用直连/独立 DNS 解析器（抗运营商污染的加密阿里 DoH 或订阅专属 DNS）解析，

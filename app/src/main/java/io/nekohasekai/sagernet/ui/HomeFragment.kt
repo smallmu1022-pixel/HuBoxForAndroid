@@ -549,6 +549,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
             .setSingleChoiceItems(labels, selected) { dialog, which ->
                 DataStore.batterySaverMode = modes[which]
                 updateBatteryModule()
+                // v1.1.5: the mode now also drives core keepalive/probe
+                // intervals baked into the config — reload so they apply
+                // immediately instead of at the next manual reconnect.
+                if (DataStore.serviceState.canStop) {
+                    runCatching { SagerNet.reloadService() }
+                }
                 dialog.dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)

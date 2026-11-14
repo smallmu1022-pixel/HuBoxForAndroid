@@ -389,6 +389,11 @@ class ConfigurationFragment @JvmOverloads constructor(
                 .setSingleChoiceItems(labels, selected) { dialog, which ->
                     DataStore.batterySaverMode = modes[which]
                     updateHomeModeCard()
+                    // v1.1.5: see HomeFragment — reload so the mode's core
+                    // keepalive/probe intervals take effect immediately.
+                    if (DataStore.serviceState.canStop) {
+                        runCatching { SagerNet.reloadService() }
+                    }
                     dialog.dismiss()
                 }
                 .setNegativeButton(android.R.string.cancel, null)
