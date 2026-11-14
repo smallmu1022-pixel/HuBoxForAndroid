@@ -1037,11 +1037,17 @@ class ConfigurationFragment @JvmOverloads constructor(
 
         val ctx = requireContext()
         val resolvedTitle = getToolbarTitleText()
+        // HuBox v1.1.9: with a custom background photo set, the theme
+        // paints below must not cover it — this block paints the page
+        // root and the top bars opaque, which is why the photo kept
+        // vanishing on the configuration page only (the other main
+        // pages have no such paints).
+        val hasCustomBg = DataStore.homeBackground.isNotEmpty()
         when {
             Theme.isBlackTheme(ctx) -> {
                 val bg = Color.BLACK
-                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(bg)
-                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(bg)
+                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(if (hasCustomBg) Color.TRANSPARENT else bg)
+                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(if (hasCustomBg) Color.TRANSPARENT else bg)
                 toolbar.setBackgroundColor(Color.TRANSPARENT)
                 toolbar.setTitleTextColor(Color.WHITE)
                 val tv = view.findViewById<TextView>(R.id.toolbar_title_view)
@@ -1061,8 +1067,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                 tintMenuIcons(toolbar.menu, Color.WHITE)
             }
             Theme.isWhiteTheme(ctx) -> {
-                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(Color.WHITE)
-                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(Color.WHITE)
+                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(if (hasCustomBg) Color.TRANSPARENT else Color.WHITE)
+                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(if (hasCustomBg) Color.TRANSPARENT else Color.WHITE)
                 toolbar.setBackgroundColor(Color.TRANSPARENT)
                 toolbar.setTitleTextColor(Color.parseColor("#212121"))
                 val tv = view.findViewById<TextView>(R.id.toolbar_title_view)
@@ -1085,8 +1091,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                 val bg = Color.parseColor("#F5F5F7")
                 val textPrimary = Color.parseColor("#1F2937")
                 val textSecondary = Color.parseColor("#6B7280")
-                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(bg)
-                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(bg)
+                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(if (hasCustomBg) Color.TRANSPARENT else bg)
+                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(if (hasCustomBg) Color.TRANSPARENT else bg)
                 toolbar.setBackgroundColor(Color.TRANSPARENT)
                 toolbar.setTitleTextColor(textPrimary)
                 val tv = view.findViewById<TextView>(R.id.toolbar_title_view)
@@ -1108,9 +1114,10 @@ class ConfigurationFragment @JvmOverloads constructor(
             else -> {
                 val pageBg = ctx.getColorAttr(android.R.attr.colorBackground)
                 val textColorPrimary = ctx.getColorAttr(android.R.attr.textColorPrimary)
-                view.setBackgroundColor(pageBg)
-                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(pageBg)
-                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(pageBg)
+                if (!hasCustomBg) view.setBackgroundColor(pageBg)
+                val barBg = if (hasCustomBg) Color.TRANSPARENT else pageBg
+                view.findViewById<View>(R.id.appbar)?.setBackgroundColor(barBg)
+                view.findViewById<View>(R.id.toolbar_container)?.setBackgroundColor(barBg)
                 toolbar.setBackgroundColor(Color.TRANSPARENT)
                 val tv = view.findViewById<TextView>(R.id.toolbar_title_view)
                 tv?.text = resolvedTitle
