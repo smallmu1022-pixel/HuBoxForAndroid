@@ -524,7 +524,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
         set(value) {
             rawGroupUrlTestUrl = value.trim()
         }
-    var groupUrlTestInterval by profileCacheStore.stringToInt("groupUrlTestInterval") { 300 }
+    // HuBox v1.1.4 power: default probe interval 300s -> 600s (radio wakeups).
+    var groupUrlTestInterval by profileCacheStore.stringToInt("groupUrlTestInterval") { 600 }
     var groupUrlTestTolerance by profileCacheStore.stringToInt("groupUrlTestTolerance") { 50 }
     var groupUrlTestIdleTimeout by profileCacheStore.string("groupUrlTestIdleTimeout") { "30m" }
     var groupUrlTestInterruptExist by profileCacheStore.boolean("groupUrlTestInterruptExist")

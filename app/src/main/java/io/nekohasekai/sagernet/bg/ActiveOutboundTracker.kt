@@ -296,12 +296,25 @@ object ActiveOutboundTracker {
         }
     }
 
+    // HuBox v1.1.4 power: checkAndUpdate runs on every looper tick (1s in
+    // the foreground); the group row never changes while a profile stays
+    // selected, so cache it by group id instead of a Room query per tick.
+    private var cachedGroupId: Long = Long.MIN_VALUE
+    private var cachedGroup: io.nekohasekai.sagernet.database.ProxyGroup? = null
+
     fun checkAndUpdate(data: BaseService.Data): Boolean {
         val proxy = data.proxy ?: return false
         if (!proxy.isInitialized()) return false
         val profile = proxy.profile
         val isBalancer = profile.type == ProxyEntity.TYPE_BALANCER
-        val group = runCatching { SagerDatabase.groupDao.getById(profile.groupId) }.getOrNull()
+        val group = if (profile.groupId == cachedGroupId) {
+            cachedGroup
+        } else {
+            runCatching { SagerDatabase.groupDao.getById(profile.groupId) }.getOrNull().also {
+                cachedGroupId = profile.groupId
+                cachedGroup = it
+            }
+        }
         val isGroupStrategy = group != null && (
             runCatching { DataStore.isGroupUrlTest(group.id) }.getOrDefault(false) ||
             runCatching { DataStore.isGroupLoadBalance(group.id) }.getOrDefault(false)
