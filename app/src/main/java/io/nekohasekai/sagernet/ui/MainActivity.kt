@@ -195,7 +195,11 @@ class MainActivity : ThemedActivity(),
         applyAppBackgroundIfNeeded()
     }
 
-    private fun applyAppBackgroundIfNeeded() {
+    // Internal so AppearanceSettingsFragment can re-apply immediately after
+    // a save/clear: the save finishes asynchronously AFTER this activity's
+    // onResume, so without a direct call the new background would only show
+    // up at the next activity resume (v1.1.5 bug: saved but never displayed).
+    internal fun applyAppBackgroundIfNeeded() {
         val version = DataStore.homeBackgroundVersion
         if (version == appBgVersionApplied) return
         appBgVersionApplied = version
@@ -257,6 +261,8 @@ class MainActivity : ThemedActivity(),
                         if (night) Color.argb(96, 6, 14, 30) else Color.argb(80, 255, 255, 255)
                     )
                     out
+                }.onFailure {
+                    Logs.w("app background apply failed", it)
                 }.getOrNull()
             }
             if (isFinishing || isDestroyed) {
