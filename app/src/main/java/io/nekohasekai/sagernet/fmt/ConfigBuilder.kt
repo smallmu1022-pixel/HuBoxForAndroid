@@ -1228,7 +1228,9 @@ fun buildConfig(
                     _hack_config_map["domain_strategy"] = defaultServerDomainStrategy
                     _hack_config_map["fallback_delay"] = "100ms"
                     _hack_config_map["tcp_keep_alive"] = "45s"
-                    _hack_config_map["tcp_keep_alive_interval"] = "30s"
+                    // HuBox v1.1.4 power: 30s keepalive woke the radio twice a
+                    // minute per idle connection; 5m is plenty for NAT mapping.
+                    _hack_config_map["tcp_keep_alive_interval"] = "5m"
                     _hack_config_map["connect_timeout"] = "5s"
 
                     // 确保所有出站代理节点服务器域名强制使用直连/独立 DNS 解析器（抗运营商污染的加密阿里 DoH 或订阅专属 DNS）解析，

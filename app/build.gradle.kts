@@ -19,6 +19,9 @@ android {
     defaultConfig {
         versionName = requireMetadata().getProperty("VERSION_NAME")
         versionCode = requireMetadata().getProperty("VERSION_CODE").toInt() * 5
+        // HuBox v1.1.4 slimming: ship only English + Chinese resources
+        // (was 21 locales); other languages fall back to English.
+        resourceConfigurations += listOf("en", "zh-rCN", "zh-rTW", "zh-rHK")
     }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true

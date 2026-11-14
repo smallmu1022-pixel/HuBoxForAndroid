@@ -340,9 +340,10 @@ class TrafficLooper
                     }
                 }
 
-                // Periodic DB persistence (every 10s)
+                // Periodic DB persistence (every 60s; HuBox v1.1.4 power —
+                // 10s writes bought nothing user-visible)
                 val now = System.currentTimeMillis()
-                if (profileTrafficStatistics && now - lastFlushTime >= 10_000L) {
+                if (profileTrafficStatistics && now - lastFlushTime >= 60_000L) {
                     lastFlushTime = now
                     idMap.forEach { (id, item) ->
                         if (id > 0L && (item.rx != item.lastSavedRx || item.tx != item.lastSavedTx)) {
