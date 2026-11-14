@@ -27,12 +27,13 @@ import java.util.concurrent.TimeUnit
  * them into [AppTrafficLedger] under the owning app.
  *
  * Owner resolution per connection (cached per connection id):
- *  1. the core-reported `metadata.process` when it looks like a package,
+ *  1. the core-reported `metadata.processPath` (the Clash API payload
+ *     has no `process` field — sing-box emits the resolved package
+ *     name, or the uid, under `processPath`),
  *  2. the platform connection-owner lookup (Android Q+,
  *     [android.net.ConnectivityManager.getConnectionOwnerUid]) mapped
- *     from uid to package — the same lookup the core itself uses through
- *     NativeInterface, done here because the core leaves
- *     `metadata.process` empty on-device,
+ *     from uid to package — the same lookup the core itself uses
+ *     through NativeInterface.findConnectionOwner,
  *  3. `"host:<host>"` (or the destination IP) when neither works.
  *
  * Everything runs inside [runCatching]: a broken sample must never
@@ -155,10 +156,27 @@ object AppTrafficRecorder {
 
     private fun resolveKey(metadata: JSONObject?): String {
         if (metadata == null) return ""
-        // (a) Core-reported process ("pkg" or "pkg:subprocess").
-        val process = metadata.optString("process").trim().substringBefore(':').trim()
-        if (process.contains('.') && !process.contains(' ')) return process
-        // (b) Platform owner lookup.
+        // (a) Core-reported process info. sing-box serializes it as
+        // "processPath" — there is NO "process" field in the Clash API
+        // payload (verified against sing-box v1.15.0-alpha.13
+        // clashapi/connections.go; reading "process" is exactly why the
+        // old live ranking never saw a package name). The value is the
+        // package name when the core resolved the owner, sometimes with
+        // a " (uid)" / " (user)" suffix, or the bare uid as a string.
+        val processPath = metadata.optString("processPath").trim()
+            .substringBefore(" (").substringBefore(':').trim()
+        if (processPath.isNotEmpty()) {
+            if (processPath.contains('.') && !processPath.contains('/') &&
+                !processPath.contains(' ')
+            ) {
+                return processPath
+            }
+            processPath.toIntOrNull()?.let { uid ->
+                packageNameByUid(uid)?.let { return it }
+            }
+        }
+        // (b) Platform owner lookup (same call the core itself makes
+        // through NativeInterface.findConnectionOwner).
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             packageNameByOwner(metadata)?.let { return it }
         }
@@ -166,6 +184,18 @@ object AppTrafficRecorder {
         val host = metadata.optString("host").trim()
             .ifBlank { metadata.optString("destinationIP").trim() }
         return if (host.isBlank()) "" else HOST_PREFIX + host
+    }
+
+    /** uid -> package name, mirroring NativeInterface.packageNameByUid. */
+    private fun packageNameByUid(uid: Int): String? {
+        if (uid < 0) return null
+        if (uid <= 1000) return "android"
+        if (PackageCache.isLoaded()) {
+            PackageCache.uidMap[uid]?.firstOrNull()?.let { return it }
+        }
+        return runCatching {
+            SagerNet.application.packageManager.getPackagesForUid(uid)?.firstOrNull()
+        }.getOrNull()
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -182,15 +212,7 @@ object AppTrafficRecorder {
         val uid = runCatching {
             SagerNet.connectivity.getConnectionOwnerUid(proto, src, dst)
         }.getOrDefault(-1)
-        if (uid < 0) return null
-        // Mirror NativeInterface.packageNameByUid.
-        if (uid <= 1000) return "android"
-        if (PackageCache.isLoaded()) {
-            PackageCache.uidMap[uid]?.firstOrNull()?.let { return it }
-        }
-        return runCatching {
-            SagerNet.application.packageManager.getPackagesForUid(uid)?.firstOrNull()
-        }.getOrNull()
+        return packageNameByUid(uid)
     }
 
     /** Parses an IP literal without ever triggering DNS resolution. */
