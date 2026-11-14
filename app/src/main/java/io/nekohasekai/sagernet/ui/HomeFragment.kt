@@ -2,13 +2,8 @@ package io.nekohasekai.sagernet.ui
 
 import android.animation.ObjectAnimator
 import android.content.Intent
-import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.format.Formatter
@@ -17,7 +12,6 @@ import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import java.io.File
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
@@ -70,7 +64,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     // the button disc and never reads as a shadow outside it.
     private val ARC_CONNECTING_MS = 1100L
     private val ARC_CONNECTED_MS = 6000L
-    private var homeBgVersionApplied = -1
     private var sessionJob: Job? = null
     private var sessionInitRunning = false
     private var sessionTx: Long = 0L
@@ -169,7 +162,6 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         view.findViewById<View>(R.id.home_btn_mode_global).setOnLongClickListener { openCustomize(); true }
 
         refreshContent()
-        applyHomeBackgroundIfNeeded()
         // onViewCreated already refreshed; the onResume that immediately
         // follows would rebuild every module card a second time for nothing.
         skipNextResumeRefresh = true
@@ -177,7 +169,22 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
     override fun onResume() {
         super.onResume()
-        applyHomeBackgroundIfNeeded()
+        // HuBox v1.1.4 power: the session ticker and the rotating arc run
+        // only while the home page is actually resumed (see onPause).
+        when (DataStore.serviceState) {
+            BaseService.State.Connected -> {
+                if (::connectArc.isInitialized && connectArc.visibility == View.VISIBLE) {
+                    startArcAnimation(ARC_CONNECTED_MS)
+                }
+                if (HomeModules.sessionStart(requireContext()) > 0) startSessionTicker()
+            }
+            BaseService.State.Connecting -> {
+                if (::connectArc.isInitialized && connectArc.visibility == View.VISIBLE) {
+                    startArcAnimation(ARC_CONNECTING_MS)
+                }
+            }
+            else -> Unit
+        }
         if (skipNextResumeRefresh) {
             skipNextResumeRefresh = false
             return
@@ -185,6 +192,12 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         if (::modulesContainer.isInitialized) {
             refreshContent()
         }
+    }
+
+    override fun onPause() {
+        stopArcAnimation()
+        stopSessionTicker()
+        super.onPause()
     }
 
     override fun onDestroyView() {
@@ -341,66 +354,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         if (::connectArc.isInitialized) connectArc.rotation = 0f
     }
 
-    // HuBox v1.1.3: custom home background image (set in Appearance
-    // settings). Decoded off the main thread, center-cropped to the screen,
-    // with a translucent theme scrim baked in so cards/text stay readable.
-    private fun applyHomeBackgroundIfNeeded() {
-        val root = view ?: return
-        val version = DataStore.homeBackgroundVersion
-        if (version == homeBgVersionApplied) return
-        homeBgVersionApplied = version
-        val path = DataStore.homeBackground
-        if (path.isEmpty()) {
-            root.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_glass_window)
-            return
-        }
-        val appCtx = requireContext().applicationContext
-        val metrics = resources.displayMetrics
-        val targetW = metrics.widthPixels.coerceAtLeast(1)
-        val targetH = metrics.heightPixels.coerceAtLeast(1)
-        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
-        viewLifecycleOwner.lifecycleScope.launch {
-            val drawable = withContext(Dispatchers.IO) {
-                runCatching {
-                    val file = File(appCtx.filesDir, path)
-                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    BitmapFactory.decodeFile(file.absolutePath, bounds)
-                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
-                    var sample = 1
-                    while (sample <= 32 &&
-                        bounds.outWidth / (sample * 2) >= targetW &&
-                        bounds.outHeight / (sample * 2) >= targetH
-                    ) {
-                        sample *= 2
-                    }
-                    val raw = BitmapFactory.decodeFile(
-                        file.absolutePath,
-                        BitmapFactory.Options().apply { inSampleSize = sample },
-                    ) ?: return@runCatching null
-                    val scale = (targetW.toFloat() / raw.width)
-                        .coerceAtLeast(targetH.toFloat() / raw.height)
-                    val scaledW = (raw.width * scale).toInt().coerceAtLeast(1)
-                    val scaledH = (raw.height * scale).toInt().coerceAtLeast(1)
-                    val scaled = Bitmap.createScaledBitmap(raw, scaledW, scaledH, true)
-                    val cropW = targetW.coerceAtMost(scaledW)
-                    val cropH = targetH.coerceAtMost(scaledH)
-                    val x = ((scaledW - cropW) / 2).coerceAtLeast(0)
-                    val y = ((scaledH - cropH) / 2).coerceAtLeast(0)
-                    val cropped = Bitmap.createBitmap(scaled, x, y, cropW, cropH)
-                    val out = cropped.copy(Bitmap.Config.ARGB_8888, true)
-                    Canvas(out).drawColor(
-                        if (night) Color.argb(96, 6, 14, 30) else Color.argb(80, 255, 255, 255)
-                    )
-                    BitmapDrawable(resources, out)
-                }.getOrNull()
-            }
-            if (isAdded && view === root) {
-                root.background = drawable
-                    ?: ContextCompat.getDrawable(requireContext(), R.drawable.bg_glass_window)
-            }
-        }
-    }
+    // HuBox v1.1.4: the custom background image moved to MainActivity
+    // (window background, shared by every page). See applyAppBackgroundIfNeeded.
 
     private fun loadNodeInfo() {
         val selectedId = DataStore.selectedProxy
@@ -713,10 +668,8 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
     private fun startSessionTicker() {
         if (sessionJob?.isActive == true) return
         sessionJob = viewLifecycleOwner.lifecycleScope.launch {
-            var tick = 0
             while (isActive && DataStore.serviceState == BaseService.State.Connected) {
-                updateSessionUi(withTraffic = tick % 5 == 0)
-                tick++
+                updateSessionUi()
                 delay(1000)
             }
         }
@@ -727,7 +680,7 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         sessionJob = null
     }
 
-    private fun updateSessionUi(withTraffic: Boolean) {
+    private fun updateSessionUi() {
         val ctx = context ?: return
         val start = HomeModules.sessionStart(ctx)
         if (start <= 0) return
@@ -735,24 +688,21 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         stateHint.text = formatDuration(elapsedSeconds) +
             " · ${getString(R.string.session_label)} " +
             Formatter.formatFileSize(ctx, sessionTx + sessionRx)
-        if (!withTraffic) return
-        viewLifecycleOwner.lifecycleScope.launch {
-            val totals = withContext(Dispatchers.IO) {
-                runCatching {
-                    val all = SagerDatabase.proxyDao.getAll()
-                    all.sumOf { it.tx } to all.sumOf { it.rx }
-                }.getOrNull()
-            } ?: return@launch
-            if (!isAdded) return@launch
-            val (baseTx, baseRx) = HomeModules.sessionBase(ctx)
-            sessionTx = (totals.first - baseTx).coerceAtLeast(0)
-            sessionRx = (totals.second - baseRx).coerceAtLeast(0)
-            sessionValueView?.let { valueView ->
-                valueView.text = "${getString(R.string.session_label)} " +
-                    "↑ ${Formatter.formatFileSize(ctx, sessionTx)} " +
-                    "↓ ${Formatter.formatFileSize(ctx, sessionRx)}"
-                valueView.visibility = View.VISIBLE
-            }
+    }
+
+    // HuBox v1.1.4 power: session traffic comes from the looper's speed
+    // broadcast (SpeedDisplayData totals are per-session already) instead
+    // of a full proxy-table DB read every 5 seconds.
+    fun updateSessionTraffic(txTotal: Long, rxTotal: Long) {
+        sessionTx = txTotal
+        sessionRx = rxTotal
+        val ctx = context ?: return
+        if (HomeModules.sessionStart(ctx) <= 0) return
+        sessionValueView?.let { valueView ->
+            valueView.text = "${getString(R.string.session_label)} " +
+                "↑ ${Formatter.formatFileSize(ctx, sessionTx)} " +
+                "↓ ${Formatter.formatFileSize(ctx, sessionRx)}"
+            valueView.visibility = View.VISIBLE
         }
     }
 
