@@ -331,6 +331,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     // HuBox v1.1.3: custom home-screen background image ("" = default glass).
     var homeBackground by configurationStore.string("home_background") { "" }
+    var customAppName by configurationStore.string("custom_app_name") { "" }
     var homeBackgroundVersion by configurationStore.int("home_background_version") { 0 }
 
     val persistAcrossReboot by configurationStore.boolean(Key.PERSIST_ACROSS_REBOOT) { false }

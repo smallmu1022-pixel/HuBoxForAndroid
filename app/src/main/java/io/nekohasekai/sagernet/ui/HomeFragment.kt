@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.text.format.Formatter
 import android.view.View
 import android.view.animation.LinearInterpolator
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -25,6 +26,7 @@ import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SagerDatabase
+import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.getColorAttr
 import io.nekohasekai.sagernet.utils.LandingIpManager
 import io.nekohasekai.sagernet.utils.Palette
@@ -45,6 +47,7 @@ import kotlinx.coroutines.withContext
  */
 class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
+    private lateinit var homeTitle: TextView
     private lateinit var connectBg: View
     private lateinit var connectHalo: ImageView
     private lateinit var connectArc: ImageView
@@ -102,8 +105,9 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         }
         ViewCompat.requestApplyInsets(topbar)
 
-        // Top bar halo (first ImageView child) follows the palette;
-        // the launcher icon does not.
+        // v1.2.2: the top-bar logo is gone; the first ImageView child of the
+        // bar is now the about button, which gets the same palette tint the
+        // logo had. The launcher icon does not follow the palette.
         (topbar as? LinearLayout)?.let { bar ->
             for (i in 0 until bar.childCount) {
                 val child = bar.getChildAt(i)
@@ -116,6 +120,13 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
 
         view.findViewById<View>(R.id.btn_home_about).setOnClickListener {
             (activity as? MainActivity)?.displayFragmentWithId(R.id.nav_about)
+        }
+
+        homeTitle = view.findViewById(R.id.home_title)
+        homeTitle.text = DataStore.customAppName.ifBlank { getString(R.string.app_name) }
+        homeTitle.setOnLongClickListener {
+            showRenameDialog()
+            true
         }
 
         connectBg = view.findViewById(R.id.connect_bg)
@@ -165,6 +176,36 @@ class HomeFragment : ToolbarFragment(R.layout.layout_home) {
         // onViewCreated already refreshed; the onResume that immediately
         // follows would rebuild every module card a second time for nothing.
         skipNextResumeRefresh = true
+    }
+
+    // v1.2.2: long-press the top-bar title to rename the app display name.
+    // Mirrors the EditText dialog pattern used by AssetsActivity: a padded
+    // vertical container holding a single-line EditText, OK / Cancel.
+    private fun showRenameDialog() {
+        val context = requireContext()
+        val input = EditText(context).apply {
+            hint = getString(R.string.home_custom_name_hint)
+            setText(DataStore.customAppName.ifBlank { homeTitle.text.toString() })
+            isSingleLine = true
+            setSelection(text.length)
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val padH = dp2px(20)
+            val padV = dp2px(12)
+            setPadding(padH, padV, padH, padV)
+            addView(input)
+        }
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.home_custom_name_title)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val name = input.text.toString().trim().take(20)
+                DataStore.customAppName = name
+                homeTitle.text = name.ifBlank { getString(R.string.app_name) }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     override fun onResume() {

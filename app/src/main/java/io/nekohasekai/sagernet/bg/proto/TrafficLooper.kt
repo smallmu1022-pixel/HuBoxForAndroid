@@ -9,6 +9,7 @@ import io.nekohasekai.sagernet.aidl.SpeedDisplayData
 import io.nekohasekai.sagernet.aidl.TrafficData
 import io.nekohasekai.sagernet.aidl.TrafficDataBatch
 import io.nekohasekai.sagernet.bg.ActiveOutboundTracker
+import io.nekohasekai.sagernet.bg.AppTrafficRecorder
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.bg.CoreWatchdog
 import io.nekohasekai.sagernet.bg.SagerConnection
@@ -68,6 +69,9 @@ class TrafficLooper
     }
 
     suspend fun stop() {
+        // HuBox v1.2.2: persist the per-app traffic ledger before teardown
+        // (placed before the early return below so it always runs).
+        AppTrafficRecorder.onServiceStop()
         job?.cancelAndJoin()
         job = null
         // finally traffic post
@@ -497,6 +501,13 @@ class TrafficLooper
 
             // HuBox v1.2.0: feed the core watchdog once per probed tick.
             watchdogProbeOk?.let { probeOk -> feedWatchdog(probeOk) }
+
+            // HuBox v1.2.2: sample the connection list into the per-app
+            // traffic ledger. The recorder self-throttles (5s), only runs
+            // while connected and swallows all of its own errors.
+            if (data.state == BaseService.State.Connected) {
+                AppTrafficRecorder.sampleTick()
+            }
 
             if (snapshot == null) {
                 delay(if (isForegroundUI) baseDelayMs else 3000L)
